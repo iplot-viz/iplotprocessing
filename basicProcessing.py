@@ -101,7 +101,7 @@ class exprProcessing:
     def evalExpr (self) :
         if self.compiledVersion is not None:
             try:
-                logger.debug("eval exception ")
+                #logger.debug("eval exception ")
                 self.result = eval(self.compiledVersion, self.supportedFcts, self.localDict)
             except ValueError as ve:
                 logger.error("Value error  %s", ve)
