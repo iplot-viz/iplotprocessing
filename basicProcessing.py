@@ -1,6 +1,6 @@
 import numpy
 
-import log.setupLogger as ls
+import iplotlib.log.setupLogger as ls
 
 logger = ls.get_logger(__name__)
 
