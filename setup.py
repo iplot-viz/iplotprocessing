@@ -5,8 +5,8 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="proc",
-    version="0.0.1",
-    author="Abadie Lana EXT",
+    version="0.1.0",
+    author="Lana Abadie",
     author_email="lana.abadie@iter.org",
     description="Data processing for applications using IDSs or CBS",
     long_description=long_description,
@@ -23,7 +23,7 @@ setuptools.setup(
     packages=setuptools.find_namespace_packages(where="."),
     python_requires=">=3.8",
     install_requires=[
-        "logging2 >= 0.0.1",
-        "numpy >= 1.20.0",
+        "logging2 >= 0.1.0",
+        "numpy >= 1.19.0",
     ]
 )
