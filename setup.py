@@ -5,7 +5,14 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="proc",
-    version="0.1.0",
+    setup_requires=[
+        "setuptools-git-versioning"
+    ],
+    version_config={
+        "starting_version": "0.1.0",
+        "template": "{tag}",
+        "dirty_template": "{tag}.{ccount}.{sha}",
+    },
     author="Lana Abadie",
     author_email="lana.abadie@iter.org",
     description="Data processing for applications using IDSs or CBS",
