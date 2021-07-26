@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="proc",
+    name="iplotProcessing",
     setup_requires=[
         "setuptools-git-versioning"
     ],
@@ -30,7 +30,7 @@ setuptools.setup(
     packages=setuptools.find_namespace_packages(where="."),
     python_requires=">=3.8",
     install_requires=[
-        "logging2 >= 0.6.0",
+        "iplotLogging >= 0.6.0",
         "numpy >= 1.19.0",
     ]
 )
