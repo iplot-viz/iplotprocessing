@@ -2,7 +2,7 @@
 Data processing for IMAS, CODAC data. See [requirements](https://confluence.iter.org/display/PMA/Data+Processing+Requirements)
 
 # Requirements
-See [requirements.txt](/requirements.txt)
+See [requirements.txt](https://git.iter.org/projects/VIS/repos/iplotprocessing/browse/requirements.txt)
 
 # Install
 For strict versioning:
@@ -18,5 +18,4 @@ pip install .
 
 # Requires
 1. python >= 3.8
-2. numpy
-3. iplotLogging
+
