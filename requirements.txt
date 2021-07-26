@@ -1,0 +1,3 @@
+# Fixed for CODAC core system
+logging==0.6.0
+numpy==1.19.5 # To match the one in MINT/pom.xml as on 26 Jul 2021
