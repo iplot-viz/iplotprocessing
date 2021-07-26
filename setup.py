@@ -28,9 +28,9 @@ setuptools.setup(
     ],
     package_dir={"": "."},
     packages=setuptools.find_namespace_packages(where="."),
-    python_requires="=3.8",
+    python_requires=">=3.8",
     install_requires=[
-        "logging2 = 0.0.0",
-        "numpy = 1.19.0",
+        "logging2 >= 0.6.0",
+        "numpy >= 1.19.0",
     ]
 )
