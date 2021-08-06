@@ -27,7 +27,8 @@ class exprProcessing:
         stop=False
         newexpr=expr
         while not stop:
-            if newexpr.find(self.markerIn)==-1:
+            # no point searching if in or out markers don't exist in new expression
+            if newexpr.find(self.markerIn) == -1 or newexpr.find(self.markerOut) == -1:
                 break
             var=newexpr[newexpr.find(self.markerIn)+len(self.markerIn):newexpr.find(self.markerOut)]
             if var not in self.vardict.keys():
