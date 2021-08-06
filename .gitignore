@@ -49,3 +49,11 @@ venv.bak/
 
 # Cython debug symbols
 cython_debug/
+
+# Coverage/Test reports
+*.xml
+*.html
+*.coverage
+
+# Archives
+*.tar.gz
