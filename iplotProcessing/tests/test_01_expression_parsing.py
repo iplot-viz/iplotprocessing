@@ -9,8 +9,9 @@ class TestExpressionParsing(unittest.TestCase):
         self.parser = exprProcessing()
 
     def test_invalid_expressions(self) -> None:
-        # self.assertRaises(self.parser.setExpr("${"), ProcParsingException)
-        # self.assertRaises(self.parser.setExpr("${time"), ProcParsingException)
+        # self.assertRaises(ProcParsingException, self.parser.setExpr, "${")
+        # self.assertRaises(ProcParsingException, self.parser.setExpr, "${time")
+        self.assertRaises(ProcParsingException, self.parser.setExpr, "}")
         self.assertRaises(ProcParsingException, self.parser.setExpr, "time}")
 
     def test_vulnerabilities(self) -> None:
