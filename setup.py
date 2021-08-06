@@ -30,7 +30,7 @@ setuptools.setup(
     packages=setuptools.find_namespace_packages(where="."),
     python_requires=">=3.8",
     install_requires=[
-        "iplotLogging >= 0.6.0",
+        "iplotLogging >= 0.0.0",
         "numpy >= 1.19.0",
     ]
 )
