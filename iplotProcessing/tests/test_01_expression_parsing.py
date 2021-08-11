@@ -1,12 +1,12 @@
 import unittest
 import numpy as np
-from iplotProcessing.basicProcessing import exprProcessing, ProcParsingException
+from iplotProcessing.tools import ExprParser, ProcParsingException
 
 
 class TestExpressionParsing(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.parser = exprProcessing()
+        self.parser = ExprParser()
 
     def test_invalid_expressions(self) -> None:
         self.assertRaises(ProcParsingException, self.parser.setExpr, "${")
