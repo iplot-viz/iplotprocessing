@@ -1,3 +1,3 @@
-from .pobject import PObject
+from .signal import Signal
 
-__all__ = ["PObject"]
+__all__ = ["Signal"]

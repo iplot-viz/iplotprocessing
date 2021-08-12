@@ -4,11 +4,11 @@ from iplotLogging import setupLogger as sl
 logger = sl.get_logger(__name__, "DEBUG")
 
 
-class PObject:
+class Signal:
     """A processing object meant to provide data, unit handling for multi-dimensional
     signal processing methods.
 
-    The data_store is combined of primary and secondary data objects.
+    The data_store is made of of primary and secondary data objects.
     By default, simply use `data` member to get primary data object's buffer
 
     Time
@@ -60,6 +60,7 @@ class PObject:
     @time.setter
     def time(self, val):
         self._time.buffer = val
+        self._time.buffer = self._time.buffer.ravel() # time has to be a 1D array!
 
     @property
     def data(self):
