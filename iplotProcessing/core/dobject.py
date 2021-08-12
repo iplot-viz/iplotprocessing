@@ -16,7 +16,7 @@ class DObject:
 
     @buffer.setter
     def buffer(self, val):
-        self._buffer = np.asarray(val).ravel()
+        self._buffer = np.asarray(val)
 
     def __getattr__(self, attr):
         """Makes the object behave like a numpy.ndarray"""
