@@ -19,6 +19,7 @@ class TestExpressionParsing(unittest.TestCase):
         self.assertRaises(ProcParsingException, self.parser.setExpr, "${time")
         self.assertRaises(ProcParsingException, self.parser.setExpr, "time}")
         self.assertRaises(ProcParsingException, self.parser.setExpr, "{time}")
+        self.assertRaises(ProcParsingException, self.parser.setExpr, "${{time}}")
 
     def test_vulnerabilities(self) -> None:
         self.assertRaises(ProcParsingException, self.parser.setExpr,
@@ -50,6 +51,25 @@ class TestExpressionParsing(unittest.TestCase):
             b'\x00\x00\x00\x00\x00\x00&@\x1d\xca_\x80:\x01$@\x86@x\x90\x7f\xa2&@\xbf\x1c\x80\xed:\x97$@')
         for testVal, validVal in zip(self.parser.result, validResult):
             self.assertAlmostEqual(testVal, validVal)
+
+    def test_eval_WrongComplex(self) -> None:
+        expr = "sin(${${l}}) + cos(${m}) + ${n}"
+        subst = {"${l}": np.arange(0, 4, dtype=np.float64),
+                 "m": np.arange(0, 40, 10, dtype=np.float64),
+                 "n": 10.0}
+        try:
+            self.parser.setExpr(expr)
+            self.parser.substituteExpr(subst)
+            self.parser.evalExpr()
+            validResult = np.frombuffer(
+                b'\x00\x00\x00\x00\x00\x00&@\x1d\xca_\x80:\x01$@\x86@x\x90\x7f\xa2&@\xbf\x1c\x80\xed:\x97$@')
+            for testVal, validVal in zip(self.parser.result, validResult):
+                self.assertAlmostEqual(testVal, validVal)
+        ##shall trigger an exception
+        except ProcParsingException:
+            pass
+
+
 
 
 if __name__ == "__main__":
