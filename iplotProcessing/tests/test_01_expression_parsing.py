@@ -54,7 +54,7 @@ class TestExpressionParsing(unittest.TestCase):
 
     def test_eval_WrongComplex(self) -> None:
         expr = "sin(${${l}}) + cos(${m}) + ${n}"
-        subst = {"${l}": np.arange(0, 4, dtype=np.float64),
+        subst = {"${l": np.arange(0, 4, dtype=np.float64),
                  "m": np.arange(0, 40, 10, dtype=np.float64),
                  "n": 10.0}
         try:

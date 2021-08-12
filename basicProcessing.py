@@ -68,7 +68,7 @@ class exprProcessing:
         if len(mInpos) != len(mOutpos):
             logger.error("Invalid expression %s, variable should be ${varname} ", nexpr)
             return isValid
-        self.nbarg = len(mInpos)
+        self.nbarg = len(minpos)
         for i in range(len(mInpos)-2):
             if mOutpos[i]<mInpos[i+1] and mOutpos[i]>mInpos[i]:
                 continue
