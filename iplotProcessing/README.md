@@ -6,6 +6,82 @@
 └── tools # additional tools that don't fit in core or context
 ```
 
+## ASCII art
++ So far, the information flow looks like this.
+```bash
+
+ _______________		 		|--[Input expression] # to initialize the signal. 
+|				|<--------------| # For ex. 
+|  Processor 	|              # 1. `${SignalName-X-Y-Z}+${SignalNameOther}` or simply `SignalName-X-Y-Z`
+|				|			   # 2. `${core_profiles/profiles_1d/j_ohmic} + ${something/similar/to/the/previous/one}` or simply `core_profiles/profiles_1d/j_ohmic`
+|---------------|              # 3. Using pre-registered aliases. `(ml0002 + ml0004) / 2` 
+       |
+       |  # multiple query points. these can be used in the columns of a variables table, axis labels of a plot, title of a plot, in the legend and so on.
+       |<-----------------|evaluate(expr)| # for ex, expr = "${Johm}"
+       |
+       |<-----------------|evaluate(expr)| # for ex, expr = "${rtn}"
+       |
+       |<-----------------|evaluate(expr)| # for ex, expr = "${rtn}.time"
+       |
+       |<-----------------|evaluate(expr)| # for ex, expr = "${Johm}.time"
+       |
+       |<-----------------|evaluate(expr)| # for ex, expr = "convolve(time, ones(5), 'valid') / 5"
+       |
+       |<-----------------|evaluate(expr)| # for ex, expr = "time-15s"
+       |
+       |<-----------------|evaluate(expr)| # for ex, expr = "{Johm}.time_unit" (Ability to use this in axis label format)
+       |
+       |....
+       |
+       |..... any number of query points
+```
+
++ So far, the bigger picture looks like this.
++ The context manages the evaluation of the registered processors. Think of auto applying upon change in data or user interaction event.
++ The processors could be designed to recompute upon change but I need to think more about this.
+  + register an `evaluate` callback that the UI/dataAccess module shall call with time, data, units parameters upon change
++ Think of the processors to map to specific stack of plots in the variables table.
++ I've tried to map the separation of distinct input expressions in the varname column to different processors.
++ With the use of aliases one could access other processors signal objects and reuse other information (units, etc)
+```bash
+|-------------------------------------------------------------------------|
+|									CONTEXT									|
+|-------------------------------------------------------------------------|
+| 	ENVIRONMENT						| 			PROCESSORS              |
+|										|									|
+|		some varname: Signal 			|[Processor-0] <-- Input Expression |
+|		some varname: Signal 			|		|<----|evaluate(expr1)		|
+|		some varname: Signal 			|		|<----|evaluate(expr2)		|
+|		some alias: varname				|		|...						|
+|		some varname: Signal			|[Processor-1] <-- Input Expression |
+|		some varname: Signal			|		|<----|evaluate(expr1)		|
+|		some varname: Signal			|		|<----|evaluate(expr2)		|
+|		some varname: Signal			|		|...						|
+|		some varname: Signal			|[Processor-2] <-- Input Expression |
+|		some varname: Signal			|		|<----|evaluate(expr1)		|
+|		some varname: Signal			|		|<----|evaluate(expr2)		|
+|		some alias: varname				|		|...						|
+|		some alias: varname				|[Processor-3] <-- Input Expression |
+|		some varname: Signal			|		|<----|evaluate(expr1)		|
+|		some alias: varname				|		|<----|evaluate(expr2)		|
+|		some alias: varname				|		|...						|
+|		some alias: varname				|[Processor-4] <-- Input Expression |
+|		some alias: varname				|		|<----|evaluate(expr1)		|
+|		...:... 						|		|<----|evaluate(expr2)		|
+|		...:...							|		|...						|
+|		...:...							|[Processor-5] <-- Input Expression |
+|		...:...							|		|<----|evaluate(expr1)		|
+|		...:...							|		|<----|evaluate(expr2)		|
+|		...:...							|		|...						|
+|		...:...							|[Processor-6]....					|
+|		...:...							|...								|
+|		...:...							|...								|
+|		...:...							|...								|
+|		...:...							|									|
+|										|									|
+|-------------------------------------------------------------------------|
+```
+
 ## Implementation
 + The context will have one global environment and one or more processors.
 + The environment
@@ -63,32 +139,3 @@
          Recall that mathematical operations on `core/Signal` objects are performed on the data with proper time mixing/interpolation.
          Since `core/Signal` shall implement `__add__` and other mathematical ops. See [operators](https://docs.python.org/3/library/operator.html)
          for some of the mathematical operators `core/Signal` shall implement. Basic '+', '*', '-', '/', etc.
-
-  + So far, the information flow looks like this.
-  ```bash
-  							
-  _______________			 |--[Input expression] # to initialize the signal. 
-  |				|<-----------| # For ex. 
-  |  Processor 	|              # 1. `${SignalName-X-Y-Z}+${SignalNameOther}` or simply `SignalName-X-Y-Z`
-  |				|			   # 2. `${core_profiles/profiles_1d/j_ohmic} + ${something/similar/to/the/previous/one}` or simply `core_profiles/profiles_1d/j_ohmic`
-  ---------------              # 3. Using pre-registered aliases. `(ml0002 + ml0004) / 2` 
-         |
-         |  # multiple query points. these can be used in the columns of a variables table, axis labels of a plot, title of a plot, in the legend and so on.
-         |<-----------------|evaluate(expr)| # for ex, expr = "${Johm}"
-         |
-         |<-----------------|evaluate(expr)| # for ex, expr = "${rtn}"
-         |
-         |<-----------------|evaluate(expr)| # for ex, expr = "${rtn}.time"
-         |
-         |<-----------------|evaluate(expr)| # for ex, expr = "${Johm}.time"
-         |
-         |<-----------------|evaluate(expr)| # for ex, expr = "convolve(time, ones(5), 'valid') / 5"
-         |
-         |<-----------------|evaluate(expr)| # for ex, expr = "time-15s"
-         |
-         |<-----------------|evaluate(expr)| # for ex, expr = "{Johm}.time_unit" (Ability to use this in axis label format)
-         |
-         |....
-         |
-         |..... any number of query points
-  ```
