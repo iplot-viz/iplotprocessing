@@ -51,8 +51,8 @@
     + `data_secondary_unit`:represented by `data_secondary.unit`
     + more to come..
     + ....
-  + Now, within a processor `${time}` would evaluate to the expression's time base.
-  + Similarly `${data}` would evaluate to the expression's data.
+  + Now, within a processor `time` would evaluate to the expression's time base.
+  + Similarly `data` would evaluate to the expression's data.
   + So on for other local variables
   + What about aliases?
   	+ These appear to be names that can be used anywhere in the context and even across processors
@@ -63,3 +63,32 @@
          Recall that mathematical operations on `core/Signal` objects are performed on the data with proper time mixing/interpolation.
          Since `core/Signal` shall implement `__add__` and other mathematical ops. See [operators](https://docs.python.org/3/library/operator.html)
          for some of the mathematical operators `core/Signal` shall implement. Basic '+', '*', '-', '/', etc.
+
+  + So far, the information flow looks like this.
+  ```bash
+  							
+  _______________			 |--[Input expression] # to initialize the signal. 
+  |				|<-----------| # For ex. 
+  |  Processor 	|              # 1. `${SignalName-X-Y-Z}+${SignalNameOther}` or simply `SignalName-X-Y-Z`
+  |				|			   # 2. `${core_profiles/profiles_1d/j_ohmic} + ${something/similar/to/the/previous/one}` or simply `core_profiles/profiles_1d/j_ohmic`
+  ---------------              # 3. Using pre-registered aliases. `(ml0002 + ml0004) / 2` 
+         |
+         |  # multiple query points. these can be used in the columns of a variables table, axis labels of a plot, title of a plot, in the legend and so on.
+         |<-----------------|evaluate(expr)| # for ex, expr = "${Johm}"
+         |
+         |<-----------------|evaluate(expr)| # for ex, expr = "${rtn}"
+         |
+         |<-----------------|evaluate(expr)| # for ex, expr = "${rtn}.time"
+         |
+         |<-----------------|evaluate(expr)| # for ex, expr = "${Johm}.time"
+         |
+         |<-----------------|evaluate(expr)| # for ex, expr = "convolve(time, ones(5), 'valid') / 5"
+         |
+         |<-----------------|evaluate(expr)| # for ex, expr = "time-15s"
+         |
+         |<-----------------|evaluate(expr)| # for ex, expr = "{Johm}.time_unit" (Ability to use this in axis label format)
+         |
+         |....
+         |
+         |..... any number of query points
+  ```
