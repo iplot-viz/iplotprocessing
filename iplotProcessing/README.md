@@ -44,10 +44,10 @@
 + I've tried to map the separation of distinct input expressions in the varname column to different processors.
 + With the use of aliases one could access other processors signal objects and reuse other information (units, etc)
 ```bash
-|-------------------------------------------------------------------------|
+|---------------------------------------------------------------------------|
 |									CONTEXT									|
-|-------------------------------------------------------------------------|
-| 	ENVIRONMENT						| 			PROCESSORS              |
+|---------------------------------------------------------------------------|
+| 		ENVIRONMENT						| 			PROCESSORS              |
 |										|									|
 |		some varname: Signal 			|[Processor-0] <-- Input Expression |
 |		some varname: Signal 			|		|<----|evaluate(expr1)		|
@@ -79,7 +79,7 @@
 |		...:...							|...								|
 |		...:...							|									|
 |										|									|
-|-------------------------------------------------------------------------|
+|---------------------------------------------------------------------------|
 ```
 
 ## Implementation
