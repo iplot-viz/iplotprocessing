@@ -86,8 +86,6 @@
 + The context will have one global environment and one or more processors.
 + The environment
   + is a key-value based dictionary of variable names and their data.
-  + the variable name is generic and only the concrete environment's define the
-        rules of a variable name.
   + For example, 
     + considering a codacuda DS, the variable name is a series of alpha-numeric characters
         that the iplotDataAccess module can understand.
@@ -97,7 +95,8 @@
   + The value in the dictionary for a given key is a `core/Signal` object
   + We will have to somehow initialize a `core/Signal` object populated with the time, data members prior
         to evaluating the expression.
-  + Without deep-copying the iplotDataAccess/dataObj data, since sometimes the data size is in the magnitude of tera bytes..
+  + The key must also encode the data-source.
+    + Ex: varname=IP1, DS=JET and varname=IP1, DS=codacuda must be unique.
 + The processor 
   + will have access to the global environment of the context it is registered with.
   + and a local environment for the real data, time, units information. 
@@ -133,9 +132,15 @@
   + What about aliases?
   	+ These appear to be names that can be used anywhere in the context and even across processors
     + These will be stored in the global environment and can be used to refer to the `core/Signal` object
+    + `self` in python means the object itself. Similarly, proposed syntax to access the current row's signal's members is
+      + Ex: for time access, `${self}.time`
+      + Ex: for data access, `${self}.data`
     + So, all of these would evaluate correctly accordint the python data-member access syntax
+      + `${self}.time` = The member `time` of the `core/Signal` object for the processor corresponding to current row.
   	  + `${Johm}.time` = The member `time` of the `core/Signal` object registered under the alias Johm in the global environment.
   	  + `(ml0002+ml0004)/1` = The sum of two `core/Signal` objects which are registered under the alias `ml0002` and `ml0004`. 
          Recall that mathematical operations on `core/Signal` objects are performed on the data with proper time mixing/interpolation.
          Since `core/Signal` shall implement `__add__` and other mathematical ops. See [operators](https://docs.python.org/3/library/operator.html)
          for some of the mathematical operators `core/Signal` shall implement. Basic '+', '*', '-', '/', etc.
+    + Aliases can be used for querying the processor to evaluate an expression.
+    + If the alias was registered, its valid to query an expression containing the alias.
