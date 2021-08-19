@@ -1,7 +1,6 @@
 ## Structure
 ```bash
-├── context # user/developer's contact with signal processing methods
-├── core # core data objects will be managed by context
+├── core # core data objects will be managed by a context i.e, user/developer's contact with signal processing methods
 ├── tests 
 └── tools # additional tools that don't fit in core or context
 ```
