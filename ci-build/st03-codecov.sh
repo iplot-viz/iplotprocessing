@@ -10,7 +10,7 @@ tar -xvzf ${PREFIX_DIR}.tar.gz ./${PREFIX_DIR}
 
 export PYTHONPATH=${PYTHONPATH}:$(get_abs_filename "./${PREFIX_DIR}")
 # run tests
-coverage run --source=iplotProcessing -m pytest iplotProcessing
+coverage run --source=iplotProcessing/core,iplotProcessing/tools -m pytest iplotProcessing
 
 # report
 coverage report -i
