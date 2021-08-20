@@ -33,5 +33,12 @@ setuptools.setup(
     install_requires=[
         "iplotLogging >= 0.0.0",
         "numpy >= 1.19.0",
-    ]
+        "pandas >= 1.1.4"
+    ],
+    entry_points={
+        'console_scripts': ['iprocapp = iplotProcessing.example.__main__:main']
+    },
+    package_data = {
+        "iplotProcessing.example": ["example_inp.csv"]
+    }
 )

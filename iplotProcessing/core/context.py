@@ -1,52 +1,57 @@
-import typing
+from collections import defaultdict
+from typing import Dict, Union
 from iplotProcessing.core.processor import Processor
 from iplotProcessing.core.signal import Signal
-from iplotProcessing.tools.hasher import hash_tuple
-from iplotProcessing.tools.parsers import ExprParser
+from iplotProcessing.tools import hasher, parsers
 
 
 class Context:
     def __init__(self) -> None:
-        self._processors = {}
-        self._env = {}
+        self._processors = defaultdict(list)
+        self._env = {}         # type: Dict[str, Union[Signal, str]]
 
-    def resolve(self, sourceId: str, name: str) -> Signal:
-        hcode = hash_tuple((sourceId, name))
-        return self._env.get(hcode)
-    
-    def get(self, name: str) -> str:
-        return self._env.get(name)
+    def getReference(self, sourceId: str, name: str) -> Union[Signal, str]:
+        key = hasher.hash_tuple((sourceId, name))
+        return self._env.get(key)
 
-    def update(self, key: str, value: typing.Union[str, Signal]):
-        if not isinstance(value, str) and not isinstance(value, Signal):
-            raise AttributeError("value must be either a string or a Signal")
-        self._env.update({key: value})
+    def getProcessor(self, sourceId: str, inputExpr: str) -> Processor:
+        key = hasher.hash_tuple((sourceId, inputExpr))
+        return self._processors.get(key)
+
+    def updateAlias(self, sourceId: str, name: str, alias: str):
+        key = hasher.hash_tuple((sourceId, name))
+        self._env.update({alias: key})
 
     def register(self, proc: Processor):
         if proc is None:
             return
 
-        self.processors.update({id(proc): proc})
+        key = hasher.hash_tuple((proc.sourceId, proc.inputExpr))
+        self.processors.update({key: proc})
         proc.gEnv = self.env
 
     def deRegister(self, proc: Processor):
         if proc is None:
             return
 
-        self.processors.pop(id(proc))
+        key = hasher.hash_tuple((proc.sourceId, proc.inputExpr))
+        self.processors.pop(key)
         proc.gEnv = None
 
     def refresh(self):
         for proc in self.processors.values():
-            parser = ExprParser()
+            parser = parsers.ExprParser()
             parser.setExpr(proc.inputExpr)
-            
-            # create a signal instance for each variable that isn't an alias
-            for varName in parser.vardict.keys():
-                hcode = hash_tuple((proc.sourceId, varName))
-                if self.get(varName) is None:
-                    self._env.update({hcode: Signal()})
 
+            keys = parser.vardict.keys()
+            if not parser.isExpr:  # for single varname without '${', '}'
+                keys = [proc.inputExpr]
+
+            # create a signal instance for each variable that isn't an alias
+            for varName in keys:
+                key = hasher.hash_tuple((proc.sourceId, varName))
+                if self._env.get(varName) is None:  # ensure varName is not aliased
+                    self._env.update({key: Signal()})
 
     @property
     def processors(self):
@@ -62,11 +67,5 @@ class Context:
 
     @env.setter
     def env(self, val: dict):
-        if not isinstance(val, dict):
-            raise AttributeError(
-                "Restricted access. Cannot assign non dictionary object to environment.")
-        self._env = val
-
-        for proc in self.processors.values():
-            if isinstance(proc, Processor):
-                proc.gEnv = self._env
+        raise AttributeError(
+            "Restricted access. Cannot assign non dictionary object to environment.")

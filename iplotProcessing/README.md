@@ -1,6 +1,7 @@
 ## Structure
 ```bash
 ├── core # core data objects will be managed by a context i.e, user/developer's contact with signal processing methods
+├── example # An example demonstrating how everything (context, processors, varnames) fits together. 
 ├── tests 
 └── tools # additional tools that don't fit in core or context
 ```
@@ -44,40 +45,37 @@
 + With the use of aliases one could access other processors signal objects and reuse other information (units, etc)
 ```bash
 |---------------------------------------------------------------------------|
-|									CONTEXT									|
+|==================================CONTEXT==================================|
 |---------------------------------------------------------------------------|
-| 		ENVIRONMENT						| 			PROCESSORS              |
-|										|									|
-|		some varname: Signal 			|[Processor-0] <-- Input Expression |
-|		some varname: Signal 			|		|<----|evaluate(expr1)		|
-|		some varname: Signal 			|		|<----|evaluate(expr2)		|
-|		some alias: varname				|		|...						|
-|		some varname: Signal			|[Processor-1] <-- Input Expression |
-|		some varname: Signal			|		|<----|evaluate(expr1)		|
-|		some varname: Signal			|		|<----|evaluate(expr2)		|
-|		some varname: Signal			|		|...						|
-|		some varname: Signal			|[Processor-2] <-- Input Expression |
-|		some varname: Signal			|		|<----|evaluate(expr1)		|
-|		some varname: Signal			|		|<----|evaluate(expr2)		|
-|		some alias: varname				|		|...						|
-|		some alias: varname				|[Processor-3] <-- Input Expression |
-|		some varname: Signal			|		|<----|evaluate(expr1)		|
-|		some alias: varname				|		|<----|evaluate(expr2)		|
-|		some alias: varname				|		|...						|
-|		some alias: varname				|[Processor-4] <-- Input Expression |
-|		some alias: varname				|		|<----|evaluate(expr1)		|
-|		...:... 						|		|<----|evaluate(expr2)		|
-|		...:...							|		|...						|
-|		...:...							|[Processor-5] <-- Input Expression |
-|		...:...							|		|<----|evaluate(expr1)		|
-|		...:...							|		|<----|evaluate(expr2)		|
-|		...:...							|		|...						|
-|		...:...							|[Processor-6]....					|
-|		...:...							|...								|
-|		...:...							|...								|
-|		...:...							|...								|
-|		...:...							|									|
-|										|									|
+|--------------ENVIRONMENT-------------|-------------PROCESSORS-------------|
+|hash(ds, some_varname): Signal        |[Processor-0] <-- Input Expression  |
+|hash(ds, some_varname): Signal        |		|<----|evaluate(expr1)      |
+|hash(ds, some_varname): Signal        |		|<----|evaluate(expr2)      |
+|some_alias: hash(ds, some_varname)    |		|...						|
+|hash(ds, some_varname): Signal        |[Processor-1] <-- Input Expression  |
+|hash(ds, some_varname): Signal        |		|<----|evaluate(expr1)      |
+|hash(ds, some_varname): Signal        |		|<----|evaluate(expr2)      |
+|hash(ds, some_varname): Signal        |		|...						|
+|hash(ds, some_varname): Signal        |[Processor-2] <-- Input Expression  |
+|hash(ds, some_varname): Signal        |		|<----|evaluate(expr1)      |
+|hash(ds, some_varname): Signal        |		|<----|evaluate(expr2)      |
+|some_alias: hash(ds, some_varname)    |		|...						|
+|some_alias: hash(ds, some_varname)    |[Processor-3] <-- Input Expression  |
+|hash(ds, some_varname): Signal        |		|<----|evaluate(expr1)      |
+|some_alias: hash(ds, some_varname)    |		|<----|evaluate(expr2)      |
+|some_alias: hash(ds, some_varname)    |		|...						|
+|some_alias: hash(ds, some_varname)    |[Processor-4] <-- Input Expression  |
+|some_alias: hash(ds, some_varname)    |		|<----|evaluate(expr1)      |
+|...:...                               |		|<----|evaluate(expr2)      |
+|...:...                               |		|...						|
+|...:...                               |[Processor-5] <-- Input Expression  |
+|...:...                               |		|<----|evaluate(expr1)      |
+|...:...                               |		|<----|evaluate(expr2)      |
+|...:...                               |		|...						|
+|...:...                               |...                                 |
+|...:...                               |...                                 |
+|...:...                               |...                                 |
+|...:...                               |                                    |
 |---------------------------------------------------------------------------|
 ```
 
@@ -143,3 +141,5 @@
          for some of the mathematical operators `core/Signal` shall implement. Basic '+', '*', '-', '/', etc.
     + Aliases can be used for querying the processor to evaluate an expression.
     + If the alias was registered, its valid to query an expression containing the alias.
+    + Processor should request data access to populate the `value` i.e, the Signal object in the key-value based environment.
+    + Need to work on interfacing with data access

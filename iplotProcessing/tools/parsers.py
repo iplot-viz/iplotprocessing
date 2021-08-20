@@ -2,7 +2,7 @@ import numpy
 
 import iplotLogging.setupLogger as ls
 import re
-logger = ls.get_logger(__name__)
+logger = ls.get_logger(__name__, "DEBUG")
 
 
 class ProcParsingException(Exception):
@@ -132,7 +132,7 @@ class ExprParser:
 
     def substituteExpr(self, valMap):
         for k in valMap.keys():
-            if self.vardict[k]:
+            if self.vardict.get(k):
                 self.localDict[self.vardict[k]] = valMap[k]
 
     def evalExpr(self):

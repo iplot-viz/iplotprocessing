@@ -7,11 +7,11 @@ class CtxAliasTesting(unittest.TestCase):
     def test_ctx_alias(self):
         ctx = Context()
 
-        ctx.update("cs002i", "CS-XWIG002-I")
-        ctx.update("cs024i", "CS-XWIG024-I")
-        self.assertEqual(ctx.get("cs002i"), "CS-XWIG002-I")
-        self.assertEqual(ctx.get("cs024i"), "CS-XWIG024-I")
+        ctx.updateAlias("ds1", "CS-XWIG002-I", "cs002i")
+        ctx.updateAlias("ds1", "CS-XWIG024-I", "cs024i")
+        self.assertEqual(ctx.env.get("cs002i"), "015ecc4c72536cacf3351d9b0f67031d")
+        self.assertEqual(ctx.env.get("cs024i"), "78f1ac48159ca4114abadaf61b547171")
 
         # alias to an alias
-        ctx.update("cs24i", "cs024i")
-        self.assertEqual(ctx.get("cs24i"), "cs024i")
+        ctx.env.update({"cs24i": "cs024i"})
+        self.assertEqual(ctx.env.get("cs24i"), "cs024i")
