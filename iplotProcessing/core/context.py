@@ -3,12 +3,14 @@ from typing import Dict, Union
 from iplotProcessing.core.processor import Processor
 from iplotProcessing.core.signal import Signal
 from iplotProcessing.tools import hasher, parsers
+from iplotProcessing.translators.translator import Translator
 
 
 class Context:
     def __init__(self) -> None:
         self._processors = defaultdict(list)
         self._env = {}         # type: Dict[str, Union[Signal, str]]
+        self.da = None
 
     def getSignal(self, sourceId: str, name: str) -> Signal:
         key = hasher.hash_tuple((sourceId, name))
@@ -50,8 +52,22 @@ class Context:
             # create a signal instance for each variable that isn't an alias
             for varName in keys:
                 key = hasher.hash_tuple((proc.sourceId, varName))
-                if self._env.get(varName) is None:  # ensure varName is not aliased
-                    self._env.update({key: Signal()})
+                value = self._env.get(varName)
+
+                # ensure varName is not aliased, if not, resolve alias (recursively).
+                while isinstance(value, str):
+                    key = self._env.get(varName)
+                    varName = key
+                    value = self._env.get(key)
+
+                sig = Signal()
+                if hasattr(self.da, "getData"):
+                    dObj = self.da.getData(
+                        proc.sourceId, varName)  # TODO: tsS,tsE,nbp
+                    Translator.new(proc.sourceId).translate(dObj, sig)
+
+                self._env.update({key: sig})
+
 
     @property
     def processors(self):
