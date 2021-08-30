@@ -20,17 +20,21 @@ class Processor:
         parser = parsers.ExprParser()
         parser.setExpr(self.inputExpr)
 
-        keys = parser.vardict.keys()
         if not parser.isExpr:  # for single varname without '${', '}'
-            keys = [self.inputExpr]
+            inputExpr = parser.markerIn + self.inputExpr + parser.markerOut
+            parser.clearExpr("")
+            parser.setExpr(inputExpr)
+        else:
+            inputExpr = self.inputExpr
 
-        inputExpr = self._inputExpr
-        for varName in keys:
+        # now replace ascii varnames with the hash codes
+        for varName in parser.vardict.keys():
             hashcode = hasher.hash_tuple((self.sourceId, varName))
             inputExpr = inputExpr.replace(varName, hashcode)
 
+        # parse and evaluate the new input expression
         parser.clearExpr("")
-        parser.setExpr(parser.markerIn + inputExpr + parser.markerOut)
+        parser.setExpr(inputExpr)
         parser.substituteExpr(self.gEnv)
         parser.evalExpr()
 
