@@ -3,7 +3,7 @@ from iplotProcessing.translators.datasources.imasuda import ImasUdaTranslator
 from iplotProcessing.translators.datasources.emulated import EmulatedTranslator
 
 class Translator:
-    def new(kind="simulated"):
+    def new(kind="emulated"):
         if kind == "emulated":
             return EmulatedTranslator()
         elif kind == "codacuda":
