@@ -2,7 +2,7 @@ import unittest
 from iplotProcessing.core import Context, Processor
 
 
-class ProcCtxTesting(unittest.TestCase):
+class CtxRegisterTesting(unittest.TestCase):
 
     def test_ctx_proc_register(self):
         ctx = Context()
