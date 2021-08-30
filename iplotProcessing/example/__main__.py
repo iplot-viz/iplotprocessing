@@ -1,7 +1,8 @@
 import argparse
 import os
 import pandas as pd
-from iplotProcessing.core import Context, Processor, Signal
+from iplotProcessing.core import Context, Processor
+from iplotProcessing.example.emulatedDataAccess import DataAccess
 from iplotLogging import setupLogger as sl
 
 logger = sl.get_logger("iplotProcessing-Example", "DEBUG")
@@ -38,6 +39,7 @@ def main():
 
     # Now, populate the environment, i.e, initialize key-value pairs.
     # The 'value' is an empty 'Signal' instance
+    ctx.da = DataAccess()
     ctx.refresh()
 
     # Now query all processors.
@@ -57,6 +59,6 @@ def main():
         x = proc.compute(xdata)
         y = proc.compute(ydata)
         z = proc.compute(zdata)
-        
+
 
 
