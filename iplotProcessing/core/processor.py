@@ -2,7 +2,6 @@ import typing
 from iplotProcessing.core.signal import Signal
 from iplotProcessing.tools import hasher, parsers
 from iplotLogging import setupLogger as sl
-from numpy.lib.arraysetops import isin
 
 logger = sl.get_logger(__name__, "DEBUG")
 
@@ -17,10 +16,33 @@ class Processor:
         self.gEnv = {}  # g: global, l: local
         self.lEnv = {"self": self.output}
 
+    def refresh(self):
+        parser = parsers.ExprParser()
+        parser.setExpr(self.inputExpr)
+
+        keys = parser.vardict.keys()
+        if not parser.isExpr:  # for single varname without '${', '}'
+            keys = [self.inputExpr]
+
+        inputExpr = self._inputExpr
+        for varName in keys:
+            hashcode = hasher.hash_tuple((self.sourceId, varName))
+            inputExpr = inputExpr.replace(varName, hashcode)
+
+        parser.clearExpr("")
+        parser.setExpr(parser.markerIn + inputExpr + parser.markerOut)
+        parser.substituteExpr(self.gEnv)
+        parser.evalExpr()
+
+        self.output = parser.result
+        self.lEnv.update({"self": self.output})
+
     def compute(self, expr: str) -> typing.Any:
-        # TODO: An expression such as `${self}.time` raises ProcParsingException.
+        # TODO: An expression such as `${self}.time` raises ProcParsingException. This code ignores it.
         if not isinstance(expr, str):
             return
+
+        self.refresh()
 
         parser = parsers.ExprParser()
         try:
@@ -33,22 +55,19 @@ class Processor:
 
         for varname in parser.vardict.keys():
             key = hasher.hash_tuple((self.sourceId, varname))
-            
+
             while True:
                 value = self.gEnv.get(key)
                 aliasRef = self.gEnv.get(varname)
-                if isinstance(value, str):
-                    key = value
-                    continue
-                elif isinstance(aliasRef, str):
-                    self.lEnv.update({varname: self.gEnv.get(aliasRef)})
-                    break
-                elif isinstance(value, Signal):
+                if isinstance(value, Signal):
                     self.lEnv.update({varname: value})
                     break
+                elif isinstance(aliasRef, str):
+                    key = aliasRef
+                    continue
                 else:
                     break
-            
+
         parser.substituteExpr(self.lEnv)
         parser.evalExpr()
         return parser.result
