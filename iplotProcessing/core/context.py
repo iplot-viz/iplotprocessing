@@ -10,7 +10,7 @@ class Context:
         self._processors = defaultdict(list)
         self._env = {}         # type: Dict[str, Union[Signal, str]]
 
-    def getReference(self, sourceId: str, name: str) -> Union[Signal, str]:
+    def getSignal(self, sourceId: str, name: str) -> Signal:
         key = hasher.hash_tuple((sourceId, name))
         return self._env.get(key)
 
