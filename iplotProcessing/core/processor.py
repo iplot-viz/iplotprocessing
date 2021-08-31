@@ -2,6 +2,7 @@ import typing
 from iplotProcessing.core.signal import Signal
 from iplotProcessing.tools import hasher, parsers
 from iplotLogging import setupLogger as sl
+from numpy.core.fromnumeric import var
 
 logger = sl.get_logger(__name__, "DEBUG")
 
@@ -11,12 +12,14 @@ class Processor:
         self.sourceId = None  # ex: imasuda, codacuda, jet .. etc
 
         self._inputExpr = None
+        self._varNames = set()
         self.output = Signal()
 
         self.gEnv = {}  # g: global, l: local
         self.lEnv = {"self": self.output}
 
     def refresh(self):
+        self._varNames.clear()
         parser = parsers.ExprParser()
         parser.setExpr(self.inputExpr)
 
@@ -31,6 +34,7 @@ class Processor:
         for varName in parser.vardict.keys():
             hashcode = hasher.hash_tuple((self.sourceId, varName))
             inputExpr = inputExpr.replace(varName, hashcode)
+            self._varNames.add(varName)
 
         # parse and evaluate the new input expression
         parser.clearExpr("")
@@ -85,3 +89,13 @@ class Processor:
         if not isinstance(val, str):
             raise AttributeError("Expression is not a string.")
         self._inputExpr = val
+
+    @property
+    def varNames(self):
+        if not len(self._varNames):
+            self.refresh()
+        return self._varNames
+
+    @varNames.setter
+    def varNames(self, val):
+        raise AttributeError("Restricted access. Cannot assign varNames.")

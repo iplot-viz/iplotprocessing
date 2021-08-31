@@ -16,6 +16,7 @@ def main():
     # In order to use processing methods, initialize a context that 
     # manages various processors within a global key-value based environment.
     ctx = Context()
+    da = DataAccess()
 
     # Input is provided in csv format. 
     # The columns named 'DS', 'Variable' must be present.
@@ -39,8 +40,13 @@ def main():
 
     # Now, populate the environment, i.e, initialize key-value pairs.
     # The 'value' is an empty 'Signal' instance
-    ctx.da = DataAccess()
     ctx.refresh()
+
+    # Now, emulate data access and set that as input data for processing
+    for proc in ctx.processors.values():
+        for varname in proc.varNames:
+            dobj = da.getData(proc.sourceId, varname)
+            ctx.setInputData(proc.sourceId, varname, dobj)
 
     # Now query all processors.
     for i in range(contents.count()['DS']):

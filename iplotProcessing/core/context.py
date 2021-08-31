@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Dict, Union
+from typing import Any, Dict, Union
 from iplotProcessing.core.processor import Processor
 from iplotProcessing.core.signal import Signal
 from iplotProcessing.tools import hasher, parsers
@@ -10,7 +10,6 @@ class Context:
     def __init__(self) -> None:
         self._processors = defaultdict(list)
         self._env = {}         # type: Dict[str, Union[Signal, str]]
-        self.da = None
 
     def getSignal(self, sourceId: str, name: str) -> Signal:
         key = hasher.hash_tuple((sourceId, name))
@@ -61,13 +60,11 @@ class Context:
                     value = self._env.get(key)
 
                 sig = Signal()
-                if hasattr(self.da, "getData"):
-                    dObj = self.da.getData(
-                        proc.sourceId, varName)  # TODO: tsS,tsE,nbp
-                    Translator.new(proc.sourceId).translate(dObj, sig)
-
                 self._env.update({key: sig})
 
+    def setInputData(self, sourceId: str, varName: str, dataObj: Any):
+        signal = self.getSignal(sourceId, varName)
+        Translator.new(sourceId).translate(dataObj, signal)
 
     @property
     def processors(self):

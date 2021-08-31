@@ -76,6 +76,8 @@ class CtxRefreshTesting(unittest.TestCase):
 
     def test_ctx_refresh(self):
         ctx = Context()
+        DataAccess.secret = 1000
+        da = DataAccess()
         # Input is provided in csv format.
         # The columns named 'DS', 'Variable' must be present.
         contents = pd.read_csv(StringIO(inp_file))
@@ -97,9 +99,13 @@ class CtxRefreshTesting(unittest.TestCase):
 
         # Now, populate the environment, i.e, initialize key-value pairs.
         # The 'value' is an empty 'Signal' instance
-        DataAccess.secret = 1000
-        ctx.da = DataAccess()
         ctx.refresh()
+
+        # Now, emulate data access and set the fetched contents as input data for processing
+        for proc in ctx.processors.values():
+            for varname in proc.varNames:
+                dobj = da.getData(proc.sourceId, varname)
+                ctx.setInputData(proc.sourceId, varname, dobj)
 
         # Now query all processors.
         test_data_dump = {}
