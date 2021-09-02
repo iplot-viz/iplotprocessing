@@ -18,6 +18,18 @@ class DObject:
     def buffer(self, val):
         self._buffer = np.asarray(val)
 
+    def __add__(self, other):
+        dobj = DObject()
+        dobj.buffer = self.buffer + other.buffer
+        dobj.unit = self.unit
+        return dobj
+
+    def __sub__(self, other):
+        dobj = DObject()
+        dobj.buffer = self.buffer - other.buffer
+        dobj.unit = self.unit
+        return dobj
+
     def __getattr__(self, attr):
         """Makes the object behave like a numpy.ndarray"""
         if hasattr(self._buffer, attr):

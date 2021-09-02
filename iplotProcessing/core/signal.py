@@ -53,6 +53,21 @@ class Signal:
         self._time = DObject()
         self._data_store = [DObject(), DObject()]
 
+    def __add__(self, other):
+        sig = Signal()
+        sig._time = self._time + other._time
+        for i in range(2):
+            sig._data_store[i] = self._data_store[i] + other._data_store[i]
+        return sig
+
+    def __sub__(self, other):
+        sig = Signal()
+        sig._time = self._time - other._time
+        for i in range(2):
+            sig._data_store[i] = self._data_store[i] - other._data_store[i]
+        return sig
+
+
     @property
     def time(self):
         return self._time.buffer
