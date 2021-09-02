@@ -11,23 +11,23 @@ class Context:
         self._processors = defaultdict(list)
         self._env = {}         # type: Dict[str, Union[Signal, str]]
 
-    def getSignal(self, sourceId: str, name: str) -> Signal:
-        key = hasher.hash_tuple((sourceId, name))
+    def getSignal(self, dataSource: str, name: str) -> Signal:
+        key = hasher.hash_tuple((dataSource, name))
         return self._env.get(key)
 
-    def getProcessor(self, sourceId: str, inputExpr: str) -> Processor:
-        key = hasher.hash_tuple((sourceId, inputExpr))
+    def getProcessor(self, dataSource: str, inputExpr: str) -> Processor:
+        key = hasher.hash_tuple((dataSource, inputExpr))
         return self._processors.get(key)
 
-    def updateAlias(self, sourceId: str, name: str, alias: str):
-        key = hasher.hash_tuple((sourceId, name))
+    def updateAlias(self, dataSource: str, name: str, alias: str):
+        key = hasher.hash_tuple((dataSource, name))
         self._env.update({alias: key})
 
     def register(self, proc: Processor):
         if proc is None:
             return
 
-        key = hasher.hash_tuple((proc.sourceId, proc.inputExpr))
+        key = hasher.hash_tuple((proc.dataSource, proc.inputExpr))
         self.processors.update({key: proc})
         proc.gEnv = self.env
 
@@ -35,7 +35,7 @@ class Context:
         if proc is None:
             return
 
-        key = hasher.hash_tuple((proc.sourceId, proc.inputExpr))
+        key = hasher.hash_tuple((proc.dataSource, proc.inputExpr))
         self.processors.pop(key)
         proc.gEnv = None
 
@@ -50,7 +50,7 @@ class Context:
 
             # create a signal instance for each variable that isn't an alias
             for varName in keys:
-                key = hasher.hash_tuple((proc.sourceId, varName))
+                key = hasher.hash_tuple((proc.dataSource, varName))
                 value = self._env.get(varName)
 
                 # ensure varName is not aliased, if not, resolve alias (recursively).
@@ -62,9 +62,9 @@ class Context:
                 sig = Signal()
                 self._env.update({key: sig})
 
-    def setInputData(self, sourceId: str, varName: str, dataObj: Any):
-        signal = self.getSignal(sourceId, varName)
-        Translator.new(sourceId).translate(dataObj, signal)
+    def setInputData(self, dataSource: str, varName: str, dataObj: Any):
+        signal = self.getSignal(dataSource, varName)
+        Translator.new(dataSource).translate(dataObj, signal)
 
     @property
     def processors(self):

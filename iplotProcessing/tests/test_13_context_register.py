@@ -8,9 +8,9 @@ class CtxRegisterTesting(unittest.TestCase):
         ctx = Context()
         ctx.env.update({"a": 1, "b": 2, "c": 3})
         p1 = Processor()
-        p1.sourceId = "ds1"
+        p1.dataSource = "ds1"
         p2 = Processor()
-        p2.sourceId = "ds2"
+        p2.dataSource = "ds2"
         ctx.register(p1)
         ctx.register(p2)
         self.assertDictEqual(ctx.env, p1.gEnv)

@@ -9,14 +9,14 @@ logger = sl.get_logger(__name__, "DEBUG")
 
 class Processor:
     def __init__(self):
-        self.sourceId = None  # ex: imasuda, codacuda, jet .. etc
-
-        self._inputExpr = None
-        self._varNames = set()
+        self.dataSource = None  # ex: imasuda, codacuda, jet .. etc
         self.output = Signal()
 
         self.gEnv = {}  # g: global, l: local
         self.lEnv = {"self": self.output}
+
+        self._inputExpr = ""
+        self._varNames = set()
 
     def refresh(self):
         self._varNames.clear()
@@ -32,7 +32,7 @@ class Processor:
 
         # now replace ascii varnames with the hash codes
         for varName in parser.vardict.keys():
-            hashcode = hasher.hash_tuple((self.sourceId, varName))
+            hashcode = hasher.hash_tuple((self.dataSource, varName))
             inputExpr = inputExpr.replace(varName, hashcode)
             self._varNames.add(varName)
 
@@ -62,7 +62,7 @@ class Processor:
             return None
 
         for varname in parser.vardict.keys():
-            key = hasher.hash_tuple((self.sourceId, varname))
+            key = hasher.hash_tuple((self.dataSource, varname))
 
             while True:
                 value = self.gEnv.get(key)

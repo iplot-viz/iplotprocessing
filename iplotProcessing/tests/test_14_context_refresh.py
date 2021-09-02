@@ -85,7 +85,7 @@ class CtxRefreshTesting(unittest.TestCase):
         # For each row, create a processor if stackId is non zero
         for i in range(contents.count()['DS']):
             p = Processor()
-            p.sourceId = contents["DS"][i]
+            p.dataSource = contents["DS"][i]
             p.inputExpr = contents["Variable"][i]
 
             # In order to access and share global aliases, register it
@@ -95,7 +95,7 @@ class CtxRefreshTesting(unittest.TestCase):
             # Update alias if declared
             alias = contents["Alias"][i]
             if isinstance(alias, str):
-                ctx.updateAlias(p.sourceId, p.inputExpr, contents["Alias"][i])
+                ctx.updateAlias(p.dataSource, p.inputExpr, contents["Alias"][i])
 
         # Now, populate the environment, i.e, initialize key-value pairs.
         # The 'value' is an empty 'Signal' instance
@@ -104,8 +104,8 @@ class CtxRefreshTesting(unittest.TestCase):
         # Now, emulate data access and set the fetched contents as input data for processing
         for proc in ctx.processors.values():
             for varname in proc.varNames:
-                dobj = da.getData(proc.sourceId, varname)
-                ctx.setInputData(proc.sourceId, varname, dobj)
+                dobj = da.getData(proc.dataSource, varname)
+                ctx.setInputData(proc.dataSource, varname, dobj)
 
         # Now query all processors.
         test_data_dump = {}
@@ -113,10 +113,10 @@ class CtxRefreshTesting(unittest.TestCase):
         for i in range(contents.count()['DS']):
 
             # Get processor by DS and Variable names
-            sourceId = contents["DS"][i]
+            dataSource = contents["DS"][i]
             inputExpr = contents["Variable"][i]
 
-            proc = ctx.getProcessor(sourceId, inputExpr)
+            proc = ctx.getProcessor(dataSource, inputExpr)
             assert(isinstance(proc, Processor))
 
             xdata = contents["x"][i]
