@@ -1,0 +1,4 @@
+DS,Variable,Stack,Row span,Col span,Envelope,Alias,x,y,z,Samples,PulseNumber,StartTime,EndTime
+emulated,CWS-SCSU-HR00:ML0004-LT-XI,0,,,,ml0004,,,,,,,
+emulated,CWS-SCSU-HR00:ML0002-LT-XI,0,,,,ml0002,,,,,,,
+,(${ml0002}+${ml0004}),1.1.1,,,,cwsHotBsnLvl,${cwsHotBsnLvl}.time,${cwsHotBsnLvl}.data,,,,,
