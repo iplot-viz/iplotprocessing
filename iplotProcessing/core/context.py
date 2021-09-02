@@ -11,6 +11,13 @@ class Context:
         self._processors = defaultdict(list)
         self._env = {}         # type: Dict[str, Union[Signal, str]]
 
+    def reset(self) -> None:
+        for proc in self.processors.values():
+            self.deRegister(proc)
+        self._env.clear()
+        assert(not len(self.processors))
+        assert(not len(self.env))
+
     def getSignal(self, dataSource: str, name: str, **kwargs) -> Signal:
         paramsId = Processor.getParamsId(kwargs)
         key = hasher.hash_tuple((dataSource, name, paramsId))
@@ -46,20 +53,24 @@ class Context:
         for proc in self.processors.values():
             proc.parseInputExpr()
 
-            # create a signal instance for each variable that isn't an alias
-            for varName in proc.varNames:
-                key = hasher.hash_tuple(
-                    (proc.dataSource, varName, proc.paramsId))
-                value = self._env.get(varName)
+            if proc.isComposite():
+                key = hasher.hash_code(proc, ["dataSource", "inputExpr", "paramsId"])
+                self._env.update({key: Signal()})
+            else:
+                # create a signal instance for each variable that isn't an alias
+                for varName in proc.varNames:
+                    key = hasher.hash_tuple(
+                        (proc.dataSource, varName, proc.paramsId))
+                    value = self._env.get(varName)
 
-                # ensure varName is not aliased, if not, resolve alias (recursively).
-                while isinstance(value, str):
-                    key = self._env.get(varName)
-                    varName = key
-                    value = self._env.get(key)
+                    # ensure varName is not aliased, if not, resolve alias (recursively).
+                    while isinstance(value, str):
+                        key = self._env.get(varName)
+                        varName = key
+                        value = self._env.get(key)
 
-                sig = Signal()
-                self._env.update({key: sig})
+                    sig = Signal()
+                    self._env.update({key: sig})
 
     def setInputData(self, dataObj: Any, dataSource: str, varName: str, **kwargs):
         signal = self.getSignal(dataSource, varName, **kwargs)
