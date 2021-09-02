@@ -1,15 +1,17 @@
+import typing
 from collections import defaultdict
-from typing import Any, Dict, Union
+from iplotProcessing.common import getParamsId
+from iplotProcessing.core.environment import Environment
 from iplotProcessing.core.processor import Processor
 from iplotProcessing.core.signal import Signal
 from iplotProcessing.tools import hasher
-from iplotProcessing.translators.translator import Translator
+from iplotProcessing.translators import Translator
 
 
 class Context:
     def __init__(self) -> None:
         self._processors = defaultdict(list)
-        self._env = {}         # type: Dict[str, Union[Signal, str]]
+        self._env = Environment()
 
     def reset(self) -> None:
         for proc in self.processors.values():
@@ -18,20 +20,16 @@ class Context:
         assert(not len(self.processors))
         assert(not len(self.env))
 
-    def getSignal(self, dataSource: str, name: str, **kwargs) -> Signal:
-        paramsId = Processor.getParamsId(kwargs)
-        key = hasher.hash_tuple((dataSource, name, paramsId))
-        return self._env.get(key)
+    def getSignal(self, dataSource: str, name: str, **kwargs) -> typing.Tuple[str, Signal]:
+        return self._env.getSignal(dataSource, name, **kwargs)
 
     def getProcessor(self, dataSource: str, inputExpr: str, **kwargs) -> Processor:
-        paramsId = Processor.getParamsId(kwargs)
+        paramsId = getParamsId(kwargs)
         key = hasher.hash_tuple((dataSource, inputExpr, paramsId))
         return self._processors.get(key)
 
     def updateAlias(self, dataSource: str, name: str, alias: str, **kwargs):
-        paramsId = Processor.getParamsId(kwargs)
-        key = hasher.hash_tuple((dataSource, name, paramsId))
-        self._env.update({alias: key})
+        self._env.updateAlias(dataSource, name, alias, **kwargs)
 
     def register(self, proc: Processor):
         if proc is None:
@@ -72,8 +70,8 @@ class Context:
                     sig = Signal()
                     self._env.update({key: sig})
 
-    def setInputData(self, dataObj: Any, dataSource: str, varName: str, **kwargs):
-        signal = self.getSignal(dataSource, varName, **kwargs)
+    def setInputData(self, dataObj: typing.Any, dataSource: str, varName: str, **kwargs):
+        _, signal = self.getSignal(dataSource, varName, **kwargs)
         Translator.new(dataSource).translate(dataObj, signal)
 
     @property
@@ -91,4 +89,4 @@ class Context:
     @env.setter
     def env(self, val: dict):
         raise AttributeError(
-            "Restricted access. Cannot assign non dictionary object to environment.")
+            "Restricted access. Cannot assign an environment. Please work with existing one.")

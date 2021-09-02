@@ -1,19 +1,14 @@
 import typing
+from iplotProcessing.common import DEFAULT_PARAMS_ID, getParamsId
+from iplotProcessing.core.environment import Environment, UnboundSignalError
 from iplotProcessing.core.signal import Signal
 from iplotProcessing.tools import hasher, parsers
 from iplotLogging import setupLogger as sl
-from numpy.core.fromnumeric import var
 
 logger = sl.get_logger(__name__, "INFO")
 
-DEFAULT_PARAMS_ID = "a"
-
 
 class Processor:
-    @staticmethod
-    def getParamsId(params: dict):
-        return DEFAULT_PARAMS_ID if not len(
-            params) else hasher.hash_tuple(tuple(params.values()))
 
     def __init__(self):
         self.dataSource = None  # ex: imasuda, codacuda, jet .. etc
@@ -22,7 +17,7 @@ class Processor:
 
         self.params = dict()
 
-        self.gEnv = {}  # g: global, l: local
+        self.gEnv = Environment()  # g: global, l: local
         self.lEnv = {"self": self.output}
 
         self._paramsId = DEFAULT_PARAMS_ID
@@ -33,10 +28,12 @@ class Processor:
         return len(self.varNames) > 1
 
     def setParams(self, dataSource: str, inputExpr: str, **kwargs):
-        if not isinstance(dataSource, str): # reset nan from csv (if empty, pandas makes it nan)
+        # reset nan from csv (if empty, pandas makes it nan)
+        if not isinstance(dataSource, str):
             dataSource = ""
         self.dataSource = dataSource
-        if not isinstance(inputExpr, str): # reset nan from csv (if empty, pandas makes it nan)
+        # reset nan from csv (if empty, pandas makes it nan)
+        if not isinstance(inputExpr, str):
             inputExpr = ""
         self.inputExpr = inputExpr
         self.params = kwargs
@@ -58,26 +55,13 @@ class Processor:
 
         # now replace ascii varnames with the hash codes and aliases with their target hash codes
         for varName in parser.vardict.keys():
-            hashCode = hasher.hash_tuple((self.dataSource, varName, self.paramsId))
-
-            aliasTmp = None
-            while True:
-                # Try Signal
-                value = self.gEnv.get(hashCode)
-                if isinstance(value, Signal):
-                    break
-                # Try alias
-                if aliasTmp is None:
-                    aliasRef = self.gEnv.get(varName)
-                else:
-                    aliasRef = self.gEnv.get(aliasTmp)
-                if isinstance(aliasRef, str):
-                    hashCode = aliasRef
-                    aliasTmp = aliasRef
-                    continue
-                else:
-                    break
-
+            hashCode = ""
+            try:
+                hashCode, _ = self.gEnv.getSignal(
+                    self.dataSource, varName, **self.params)
+            except UnboundSignalError as e:
+                # Typically, the environment is not yet populated when this func is invoked for the first time ever.
+                hashCode = e.hashCode
             self._parsedInput = self._parsedInput.replace(varName, hashCode)
             self._varNames.add(varName)
 
@@ -88,14 +72,14 @@ class Processor:
         parser.setExpr(self._parsedInput)
         parser.substituteExpr(self.gEnv)
         parser.evalExpr()
-
         self.output = parser.result
         self.lEnv.update({"self": self.output})
 
-        hashCode = hasher.hash_code(self, ["dataSource", "inputExpr", "paramsId"])
+        hashCode = hasher.hash_code(
+            self, ["dataSource", "inputExpr", "paramsId"])
         self.gEnv[hashCode] = self.output
 
-    def compute(self, expr: str) -> typing.Any:
+    def compute(self, expr: str, unboundSignalErrorHandler=None) -> typing.Any:
         # TODO: An expression such as `${self}.time` raises ProcParsingException. This code ignores it.
         if not isinstance(expr, str):
             return
@@ -112,26 +96,16 @@ class Processor:
             return None
 
         for varName in parser.vardict.keys():
-            hashCode = hasher.hash_tuple((self.dataSource, varName, self.paramsId))
-            aliasTmp = None
+            signal = None
+            try:
+                _, signal = self.gEnv.getSignal(
+                    self.dataSource, varName, **self.params)
+                if isinstance(signal, Signal):
+                    self.lEnv.update({varName: signal})
+            except UnboundSignalError as e:
+                if unboundSignalErrorHandler:
+                    unboundSignalErrorHandler(e.hashCode, self.dataSource, varName, **self.params)
 
-            while True:
-                # Try Signal
-                value = self.gEnv.get(hashCode)
-                if isinstance(value, Signal):
-                    self.lEnv.update({varName: value})
-                    break
-                # Try alias
-                if aliasTmp is None:
-                    aliasRef = self.gEnv.get(varName)
-                else:
-                    aliasRef = self.gEnv.get(aliasTmp)
-                if isinstance(aliasRef, str):
-                    hashCode = aliasRef
-                    aliasTmp = aliasRef
-                    continue
-                else:
-                    break
 
         parser.substituteExpr(self.lEnv)
         parser.evalExpr()
@@ -142,7 +116,7 @@ class Processor:
 
     @property
     def paramsId(self):
-        return Processor.getParamsId(self.params)
+        return getParamsId(self.params)
 
     @paramsId.setter
     def paramsId(self, val):
