@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import Any, Dict, Union
 from iplotProcessing.core.processor import Processor
 from iplotProcessing.core.signal import Signal
-from iplotProcessing.tools import hasher, parsers
+from iplotProcessing.tools import hasher
 from iplotProcessing.translators.translator import Translator
 
 
@@ -11,23 +11,26 @@ class Context:
         self._processors = defaultdict(list)
         self._env = {}         # type: Dict[str, Union[Signal, str]]
 
-    def getSignal(self, dataSource: str, name: str) -> Signal:
-        key = hasher.hash_tuple((dataSource, name))
+    def getSignal(self, dataSource: str, name: str, **kwargs) -> Signal:
+        paramsId = Processor.getParamsId(kwargs)
+        key = hasher.hash_tuple((dataSource, name, paramsId))
         return self._env.get(key)
 
-    def getProcessor(self, dataSource: str, inputExpr: str) -> Processor:
-        key = hasher.hash_tuple((dataSource, inputExpr))
+    def getProcessor(self, dataSource: str, inputExpr: str, **kwargs) -> Processor:
+        paramsId = Processor.getParamsId(kwargs)
+        key = hasher.hash_tuple((dataSource, inputExpr, paramsId))
         return self._processors.get(key)
 
-    def updateAlias(self, dataSource: str, name: str, alias: str):
-        key = hasher.hash_tuple((dataSource, name))
+    def updateAlias(self, dataSource: str, name: str, alias: str, **kwargs):
+        paramsId = Processor.getParamsId(kwargs)
+        key = hasher.hash_tuple((dataSource, name, paramsId))
         self._env.update({alias: key})
 
     def register(self, proc: Processor):
         if proc is None:
             return
 
-        key = hasher.hash_tuple((proc.dataSource, proc.inputExpr))
+        key = hasher.hash_code(proc, ["dataSource", "inputExpr", "paramsId"])
         self.processors.update({key: proc})
         proc.gEnv = self.env
 
@@ -35,22 +38,18 @@ class Context:
         if proc is None:
             return
 
-        key = hasher.hash_tuple((proc.dataSource, proc.inputExpr))
+        key = hasher.hash_code(proc, ["dataSource", "inputExpr", "paramsId"])
         self.processors.pop(key)
         proc.gEnv = None
 
     def refresh(self):
         for proc in self.processors.values():
-            parser = parsers.ExprParser()
-            parser.setExpr(proc.inputExpr)
-
-            keys = parser.vardict.keys()
-            if not parser.isExpr:  # for single varname without '${', '}'
-                keys = [proc.inputExpr]
+            proc.parseInputExpr()
 
             # create a signal instance for each variable that isn't an alias
-            for varName in keys:
-                key = hasher.hash_tuple((proc.dataSource, varName))
+            for varName in proc.varNames:
+                key = hasher.hash_tuple(
+                    (proc.dataSource, varName, proc.paramsId))
                 value = self._env.get(varName)
 
                 # ensure varName is not aliased, if not, resolve alias (recursively).
@@ -62,8 +61,8 @@ class Context:
                 sig = Signal()
                 self._env.update({key: sig})
 
-    def setInputData(self, dataSource: str, varName: str, dataObj: Any):
-        signal = self.getSignal(dataSource, varName)
+    def setInputData(self, dataObj: Any, dataSource: str, varName: str, **kwargs):
+        signal = self.getSignal(dataSource, varName, **kwargs)
         Translator.new(dataSource).translate(dataObj, signal)
 
     @property

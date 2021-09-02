@@ -6,39 +6,58 @@ from numpy.core.fromnumeric import var
 
 logger = sl.get_logger(__name__, "DEBUG")
 
+DEFAULT_PARAMS_ID = "a"
+
 
 class Processor:
+    @staticmethod
+    def getParamsId(params: dict):
+        return DEFAULT_PARAMS_ID if not len(
+            params) else hasher.hash_tuple(tuple(params.values()))
+
     def __init__(self):
         self.dataSource = None  # ex: imasuda, codacuda, jet .. etc
+        self.inputExpr = ""
         self.output = Signal()
+
+        self.params = dict()
 
         self.gEnv = {}  # g: global, l: local
         self.lEnv = {"self": self.output}
 
-        self._inputExpr = ""
+        self._paramsId = DEFAULT_PARAMS_ID
+        self._parsedInput = ""
         self._varNames = set()
 
-    def refresh(self):
+    def setParams(self, dataSource: str, inputExpr: str, **kwargs):
+        self.dataSource = dataSource
+        self.inputExpr = inputExpr
+        self.params = kwargs
+
+    def parseInputExpr(self):
         self._varNames.clear()
         parser = parsers.ExprParser()
         parser.setExpr(self.inputExpr)
 
         if not parser.isExpr:  # for single varname without '${', '}'
-            inputExpr = parser.markerIn + self.inputExpr + parser.markerOut
+            self._parsedInput = parser.markerIn + self.inputExpr + parser.markerOut
             parser.clearExpr("")
-            parser.setExpr(inputExpr)
+            parser.setExpr(self._parsedInput)
         else:
-            inputExpr = self.inputExpr
+            self._parsedInput = self.inputExpr
 
         # now replace ascii varnames with the hash codes
         for varName in parser.vardict.keys():
-            hashcode = hasher.hash_tuple((self.dataSource, varName))
-            inputExpr = inputExpr.replace(varName, hashcode)
+            hashcode = hasher.hash_tuple(
+                (self.dataSource, varName, self.paramsId))
+            self._parsedInput = self._parsedInput.replace(varName, hashcode)
             self._varNames.add(varName)
 
-        # parse and evaluate the new input expression
+    def refresh(self):
+        # evaluate the new input expression
+        parser = parsers.ExprParser()
         parser.clearExpr("")
-        parser.setExpr(inputExpr)
+        parser.setExpr(self._parsedInput)
         parser.substituteExpr(self.gEnv)
         parser.evalExpr()
 
@@ -81,19 +100,17 @@ class Processor:
         return parser.result
 
     @property
-    def inputExpr(self):
-        return self._inputExpr
+    def paramsId(self):
+        return Processor.getParamsId(self.params)
 
-    @inputExpr.setter
-    def inputExpr(self, val: str):
-        if not isinstance(val, str):
-            raise AttributeError("Expression is not a string.")
-        self._inputExpr = val
+    @paramsId.setter
+    def paramsId(self, val):
+        raise AttributeError("Restricted access. Cannot assign paramsId.")
 
     @property
     def varNames(self):
         if not len(self._varNames):
-            self.refresh()
+            self.parseInputExpr()
         return self._varNames
 
     @varNames.setter

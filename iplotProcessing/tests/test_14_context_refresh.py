@@ -1,16 +1,17 @@
 from io import StringIO
 from iplotProcessing.core import Context, Processor
 from iplotProcessing.example.emulatedDataAccess import DataAccess
+import numpy as np
 import pandas as pd
 import unittest
 import base64
 
-inp_file = """DS,Variable,Stack,Row span,Col span,Envelope,Alias,x,y,z
-emulated,CWS-SCSU-HR00:ML0002-LT-XI,1.1,,,1,cws2,${self}.time,${self}.data,${self}.data_secondary
-emulated,CWS-SCSU-HR00:ML0004-LT-XI,1.1,,,1,cws4,${self}.time,${self}.data,${self}.data_secondary
-emulated,CWS-SCSU-HR00:ML0001-LT-XI,1.2,,,1,,${self}.time,${cws4}.data,${self}.data_secondary
-emulated,CWS-SCSU-HR00:ML0003-LT-XI,1.2,,,1,,${self}.time,${cws2}.data + (${cws4}.data * 2),${self}.data_secondary
-emulated,UTIL-HV-S22:TOTAL_POWER_LC13,1.3,,,1,,${self}.time,${self}.data,${self}.data_secondary
+inp_file = """DS,Variable,Stack,Row span,Col span,Envelope,Alias,x,y,z,Samples,PulseNumber,StartTime,EndTime
+emulated,CWS-SCSU-HR00:ML0002-LT-XI,1.1,,,1,cws2,${self}.time,${self}.data,${self}.data_secondary,100,13100/2,0,100
+emulated,CWS-SCSU-HR00:ML0004-LT-XI,1.1,,,1,cws4,${self}.time,${self}.data,${self}.data_secondary,,,,
+emulated,CWS-SCSU-HR00:ML0001-LT-XI,1.2,,,1,,${self}.time,${cws4}.data,${self}.data_secondary,10000,,9000,1000
+emulated,CWS-SCSU-HR00:ML0003-LT-XI,1.2,,,1,,${self}.time,${cws2}.data + (${cws4}.data * 2),${self}.data_secondary,,14000/23,,
+emulated,UTIL-HV-S22:TOTAL_POWER_LC13,1.3,,,1,,${self}.time,${self}.data,${self}.data_secondary,,32001,,
 """
 
 valid_signal_data = {
@@ -85,8 +86,14 @@ class CtxRefreshTesting(unittest.TestCase):
         # For each row, create a processor if stackId is non zero
         for i in range(contents.count()['DS']):
             p = Processor()
-            p.dataSource = contents["DS"][i]
-            p.inputExpr = contents["Variable"][i]
+            params = {
+                "pulsenb": contents["PulseNumber"][i],
+                "dec_samples": contents["Samples"][i],
+                "ts_start": contents["StartTime"][i],
+                "ts_end": contents["EndTime"][i],
+                "ts_format": "relative" if np.isnan(contents["StartTime"][i]) or np.isnan(contents["EndTime"][i]) else "absolute"
+            }
+            p.setParams(contents["DS"][i], contents["Variable"][i], **params)
 
             # In order to access and share global aliases, register it
             # with the previously created global context.
@@ -95,7 +102,8 @@ class CtxRefreshTesting(unittest.TestCase):
             # Update alias if declared
             alias = contents["Alias"][i]
             if isinstance(alias, str):
-                ctx.updateAlias(p.dataSource, p.inputExpr, contents["Alias"][i])
+                ctx.updateAlias(p.dataSource, p.inputExpr,
+                                contents["Alias"][i], **params)
 
         # Now, populate the environment, i.e, initialize key-value pairs.
         # The 'value' is an empty 'Signal' instance
@@ -103,20 +111,27 @@ class CtxRefreshTesting(unittest.TestCase):
 
         # Now, emulate data access and set the fetched contents as input data for processing
         for proc in ctx.processors.values():
-            for varname in proc.varNames:
-                dobj = da.getData(proc.dataSource, varname)
-                ctx.setInputData(proc.dataSource, varname, dobj)
+            for varName in proc.varNames:
+                dobj = da.getData(proc.dataSource, varName)
+                ctx.setInputData(dobj, proc.dataSource, varName, **proc.params)
 
         # Now query all processors.
         test_data_dump = {}
 
         for i in range(contents.count()['DS']):
-
             # Get processor by DS and Variable names
             dataSource = contents["DS"][i]
             inputExpr = contents["Variable"][i]
 
-            proc = ctx.getProcessor(dataSource, inputExpr)
+            params = {
+                "pulsenb": contents["PulseNumber"][i],
+                "dec_samples": contents["Samples"][i],
+                "ts_start": contents["StartTime"][i],
+                "ts_end": contents["EndTime"][i],
+                "ts_format": "relative" if np.isnan(contents["StartTime"][i]) or np.isnan(contents["EndTime"][i]) else "absolute"
+            }
+
+            proc = ctx.getProcessor(dataSource, inputExpr, **params)
             assert(isinstance(proc, Processor))
 
             xdata = contents["x"][i]
@@ -145,6 +160,7 @@ class CtxRefreshTesting(unittest.TestCase):
         # import json
         # with open("output.json", 'w') as f:
         #     json.dump(test_data_dump, f)
+
 
 if __name__ == "__main__":
     unittest.main()
