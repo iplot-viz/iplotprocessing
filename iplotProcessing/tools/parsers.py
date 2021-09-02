@@ -2,7 +2,7 @@ import numpy
 
 import iplotLogging.setupLogger as ls
 import re
-logger = ls.get_logger(__name__, "DEBUG")
+logger = ls.get_logger(__name__, "INFO")
 
 
 class ProcParsingException(Exception):
