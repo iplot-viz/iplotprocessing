@@ -31,7 +31,7 @@ def main():
     pd.set_option('display.expand_frame_repr', False)
     print(contents, file=sys.stderr)
 
-    # For each row, create a processor if stackId is non zero
+    # Create a processor for each row.
     for i in range(contents.index.size):
         p = Processor()
         params = {
