@@ -4,7 +4,7 @@ from iplotProcessing.tools import hasher, parsers
 from iplotLogging import setupLogger as sl
 from numpy.core.fromnumeric import var
 
-logger = sl.get_logger(__name__, "DEBUG")
+logger = sl.get_logger(__name__, "INFO")
 
 DEFAULT_PARAMS_ID = "a"
 
@@ -29,8 +29,15 @@ class Processor:
         self._parsedInput = ""
         self._varNames = set()
 
+    def isComposite(self) -> bool:
+        return len(self.varNames) > 1
+
     def setParams(self, dataSource: str, inputExpr: str, **kwargs):
+        if not isinstance(dataSource, str): # reset nan from csv (if empty, pandas makes it nan)
+            dataSource = ""
         self.dataSource = dataSource
+        if not isinstance(inputExpr, str): # reset nan from csv (if empty, pandas makes it nan)
+            inputExpr = ""
         self.inputExpr = inputExpr
         self.params = kwargs
 
@@ -39,18 +46,39 @@ class Processor:
         parser = parsers.ExprParser()
         parser.setExpr(self.inputExpr)
 
-        if not parser.isExpr:  # for single varname without '${', '}'
+        if not len(self.inputExpr):
+            self._parsedInput = ""
+            parser.clearExpr("")
+        elif not parser.isExpr:  # for single varname without '${', '}'
             self._parsedInput = parser.markerIn + self.inputExpr + parser.markerOut
             parser.clearExpr("")
             parser.setExpr(self._parsedInput)
         else:
             self._parsedInput = self.inputExpr
 
-        # now replace ascii varnames with the hash codes
+        # now replace ascii varnames with the hash codes and aliases with their target hash codes
         for varName in parser.vardict.keys():
-            hashcode = hasher.hash_tuple(
-                (self.dataSource, varName, self.paramsId))
-            self._parsedInput = self._parsedInput.replace(varName, hashcode)
+            hashCode = hasher.hash_tuple((self.dataSource, varName, self.paramsId))
+
+            aliasTmp = None
+            while True:
+                # Try Signal
+                value = self.gEnv.get(hashCode)
+                if isinstance(value, Signal):
+                    break
+                # Try alias
+                if aliasTmp is None:
+                    aliasRef = self.gEnv.get(varName)
+                else:
+                    aliasRef = self.gEnv.get(aliasTmp)
+                if isinstance(aliasRef, str):
+                    hashCode = aliasRef
+                    aliasTmp = aliasRef
+                    continue
+                else:
+                    break
+
+            self._parsedInput = self._parsedInput.replace(varName, hashCode)
             self._varNames.add(varName)
 
     def refresh(self):
@@ -63,6 +91,9 @@ class Processor:
 
         self.output = parser.result
         self.lEnv.update({"self": self.output})
+
+        hashCode = hasher.hash_code(self, ["dataSource", "inputExpr", "paramsId"])
+        self.gEnv[hashCode] = self.output
 
     def compute(self, expr: str) -> typing.Any:
         # TODO: An expression such as `${self}.time` raises ProcParsingException. This code ignores it.
@@ -80,24 +111,34 @@ class Processor:
         if not parser.isExpr:
             return None
 
-        for varname in parser.vardict.keys():
-            key = hasher.hash_tuple((self.dataSource, varname))
+        for varName in parser.vardict.keys():
+            hashCode = hasher.hash_tuple((self.dataSource, varName, self.paramsId))
+            aliasTmp = None
 
             while True:
-                value = self.gEnv.get(key)
-                aliasRef = self.gEnv.get(varname)
+                # Try Signal
+                value = self.gEnv.get(hashCode)
                 if isinstance(value, Signal):
-                    self.lEnv.update({varname: value})
+                    self.lEnv.update({varName: value})
                     break
-                elif isinstance(aliasRef, str):
-                    key = aliasRef
+                # Try alias
+                if aliasTmp is None:
+                    aliasRef = self.gEnv.get(varName)
+                else:
+                    aliasRef = self.gEnv.get(aliasTmp)
+                if isinstance(aliasRef, str):
+                    hashCode = aliasRef
+                    aliasTmp = aliasRef
                     continue
                 else:
                     break
 
         parser.substituteExpr(self.lEnv)
         parser.evalExpr()
-        return parser.result
+        if isinstance(parser.result, Signal):
+            return parser.result.data_primary
+        else:
+            return parser.result
 
     @property
     def paramsId(self):
