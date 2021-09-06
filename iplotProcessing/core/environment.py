@@ -4,8 +4,13 @@ from iplotProcessing.core.signal import Signal
 from iplotProcessing.tools import hasher
 
 class UnboundSignalError(Exception):
-    def __init__(self, hc: str):
+    def __init__(self, hc: str, ds: str, name: str, kwargs: dict):
         self.hashCode = hc
+        self.ds = ds
+        self.name = name
+        self.kwargs = kwargs
+    def __str__(self):
+        return f"HashCode: {self.hashCode}, DataSource: {self.ds}, Name: {self.name}, kwargs: {self.kwargs}"
 
 class Environment(dict):
     def isAlias(self, name: str):
@@ -24,7 +29,7 @@ class Environment(dict):
         
         value = self.get(hashCode)
         if not isinstance(value, Signal):
-            raise UnboundSignalError(hashCode)
+            raise UnboundSignalError(hashCode, dataSource, name, kwargs)
     
         return hashCode, value
 
