@@ -38,6 +38,10 @@ class Processor:
         self.inputExpr = inputExpr
         self.params = kwargs
 
+    def setParamsA(self, **kwargs):
+        kwargsCp = kwargs.copy()
+        self.setParams(kwargsCp.pop("datasource"), kwargsCp.pop("varname"), **kwargsCp)
+
     def parseInputExpr(self):
         self._varNames.clear()
         parser = parsers.ExprParser()
