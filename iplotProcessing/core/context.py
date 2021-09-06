@@ -14,8 +14,8 @@ class Context:
         self._env = Environment()
 
     def reset(self) -> None:
-        for proc in self.processors.values():
-            self.deRegister(proc)
+        while len(self._processors):
+            self.deRegister(list(self._processors.values())[-1])
         self._env.clear()
         assert(not len(self.processors))
         assert(not len(self.env))
@@ -52,7 +52,8 @@ class Context:
             proc.parseInputExpr()
 
             if proc.isComposite():
-                key = hasher.hash_code(proc, ["dataSource", "inputExpr", "paramsId"])
+                key = hasher.hash_code(
+                    proc, ["dataSource", "inputExpr", "paramsId"])
                 self._env.update({key: Signal()})
             else:
                 # create a signal instance for each variable that isn't an alias
@@ -70,9 +71,13 @@ class Context:
                     sig = Signal()
                     self._env.update({key: sig})
 
-    def setInputData(self, dataObj: typing.Any, dataSource: str, varName: str, **kwargs):
-        _, signal = self.getSignal(dataSource, varName, **kwargs)
+    def setInputData(self, dataObj: typing.Any, dataSource: str, name: str, **kwargs):
+        _, signal = self.getSignal(dataSource, name, **kwargs)
         Translator.new(dataSource).translate(dataObj, signal)
+
+    def getOutputData(self, expression, dataSource: str, name: str, errorHandler=None, **kwargs) -> typing.Any:
+        proc = self.getProcessor(dataSource, name, **kwargs)
+        return proc.compute(expression, errorHandler)
 
     @property
     def processors(self):
