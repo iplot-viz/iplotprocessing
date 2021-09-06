@@ -2,8 +2,8 @@ import numpy as np
 
 
 class DObject:
-    """A data object with a flat 1-d buffer to hold the data values
-       and a unit attribute corresponding to the values
+    """A container of the data values
+       and the corresponding unit attribute
     """
 
     def __init__(self) -> None:
