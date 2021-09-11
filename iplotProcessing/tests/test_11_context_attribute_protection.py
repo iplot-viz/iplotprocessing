@@ -8,5 +8,3 @@ class CtxAttribTesting(unittest.TestCase):
         ctx = Context()
         self.assertRaises(AttributeError, ctx.__setattr__, "env", [])
         self.assertRaises(AttributeError, ctx.__setattr__, "env", 1)
-        self.assertRaises(AttributeError, ctx.__setattr__, "processors", [])
-        self.assertRaises(AttributeError, ctx.__setattr__, "processors", {})
