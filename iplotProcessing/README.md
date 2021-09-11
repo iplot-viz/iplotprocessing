@@ -1,88 +1,60 @@
 ## Structure
 ```bash
+├── common # ParameterID functions, table helpers, exceptions
 ├── core # core data objects will be managed by a context i.e, user/developer's contact with signal processing methods
 ├── example # An example demonstrating how everything (context, processors, varnames) fits together. 
 ├── tests 
 └── tools # additional tools that don't fit in core or context
 ```
 
-## ASCII art
-+ So far, the information flow looks like this.
++ The context can initialize itself from a pandas DataFrame or a csv file.
++ The delimiter is customizable. Commonly used delimiter is ','. 
++ The ',' delimiter causes a disambiguity when a field has a function with two or more arguments separated by ','
+  + Ex: convolve(${self}.time, ones(5))
++ As the table (pd.DataFrame) is read, aliases are registered and new signals are added.
++ An alias can refer to 
+  + a data source and a variable name
+  + an expression involving one or more variable names
+  + an expression involving one or more aliases
++ Aliases can be used before their definition.
++ The implementation makes sure aliases are available prior to addition of new signals.
 ```bash
-
- _______________		 		|--[Input expression] # to initialize the signal. 
-|				|<--------------| # For ex. 
-|  Processor 	|              # 1. `${SignalName-X-Y-Z}+${SignalNameOther}` or simply `SignalName-X-Y-Z`
-|				|			   # 2. `${core_profiles/profiles_1d/j_ohmic} + ${something/similar/to/the/previous/one}` or simply `core_profiles/profiles_1d/j_ohmic`
-|---------------|              # 3. Using pre-registered aliases. `(ml0002 + ml0004) / 2` 
-       |
-       |  # multiple query points. these can be used in the columns of a variables table, axis labels of a plot, title of a plot, in the legend and so on.
-       |<-----------------|evaluate(expr)| # for ex, expr = "${Johm}"
-       |
-       |<-----------------|evaluate(expr)| # for ex, expr = "${rtn}"
-       |
-       |<-----------------|evaluate(expr)| # for ex, expr = "${rtn}.time"
-       |
-       |<-----------------|evaluate(expr)| # for ex, expr = "${Johm}.time"
-       |
-       |<-----------------|evaluate(expr)| # for ex, expr = "convolve(time, ones(5), 'valid') / 5"
-       |
-       |<-----------------|evaluate(expr)| # for ex, expr = "time-15s"
-       |
-       |<-----------------|evaluate(expr)| # for ex, expr = "{Johm}.time_unit" (Ability to use this in axis label format)
-       |
-       |....
-       |
-       |..... any number of query points
-```
-
-+ So far, the bigger picture looks like this.
-+ The context manages the evaluation of the registered processors. Think of auto applying upon change in data or user interaction event.
-+ The processors could be designed to recompute upon change but I need to think more about this.
-  + register an `evaluate` callback that the UI/dataAccess module shall call with time, data, units parameters upon change
-+ Think of the processors to map to specific stack of plots in the variables table.
-+ I've tried to map the separation of distinct input expressions in the varname column to different processors.
-+ With the use of aliases one could access other processors signal objects and reuse other information (units, etc)
-```bash
-|---------------------------------------------------------------------------|
-|==================================CONTEXT==================================|
-|---------------------------------------------------------------------------|
-|--------------ENVIRONMENT-------------|-------------PROCESSORS-------------|
-|hash(ds, some_varname): Signal        |[Processor-0] <-- Input Expression  |
-|hash(ds, some_varname): Signal        |		|<----|evaluate(expr1)      |
-|hash(ds, some_varname): Signal        |		|<----|evaluate(expr2)      |
-|some_alias: hash(ds, some_varname)    |		|...						|
-|hash(ds, some_varname): Signal        |[Processor-1] <-- Input Expression  |
-|hash(ds, some_varname): Signal        |		|<----|evaluate(expr1)      |
-|hash(ds, some_varname): Signal        |		|<----|evaluate(expr2)      |
-|hash(ds, some_varname): Signal        |		|...						|
-|hash(ds, some_varname): Signal        |[Processor-2] <-- Input Expression  |
-|hash(ds, some_varname): Signal        |		|<----|evaluate(expr1)      |
-|hash(ds, some_varname): Signal        |		|<----|evaluate(expr2)      |
-|some_alias: hash(ds, some_varname)    |		|...						|
-|some_alias: hash(ds, some_varname)    |[Processor-3] <-- Input Expression  |
-|hash(ds, some_varname): Signal        |		|<----|evaluate(expr1)      |
-|some_alias: hash(ds, some_varname)    |		|<----|evaluate(expr2)      |
-|some_alias: hash(ds, some_varname)    |		|...						|
-|some_alias: hash(ds, some_varname)    |[Processor-4] <-- Input Expression  |
-|some_alias: hash(ds, some_varname)    |		|<----|evaluate(expr1)      |
-|...:...                               |		|<----|evaluate(expr2)      |
-|...:...                               |		|...						|
-|...:...                               |[Processor-5] <-- Input Expression  |
-|...:...                               |		|<----|evaluate(expr1)      |
-|...:...                               |		|<----|evaluate(expr2)      |
-|...:...                               |		|...						|
-|...:...                               |...                                 |
-|...:...                               |...                                 |
-|...:...                               |...                                 |
-|...:...                               |                                    |
-|---------------------------------------------------------------------------|
+|--------------ENVIRONMENT-------------|
+|hash(ds, some_varname): Signal        |
+|hash(ds, some_varname): Signal        |
+|hash(ds, some_varname): Signal        |
+|some_alias: hash(ds, some_varname)    |
+|hash(ds, some_varname): Signal        |
+|hash(ds, some_varname): Signal        |
+|hash(ds, some_varname): Signal        |
+|hash(ds, some_varname): Signal        |
+|hash(ds, some_varname): Signal        |
+|hash(ds, some_varname): Signal        |
+|hash(ds, some_varname): Signal        |
+|some_alias: hash(ds, some_varname)    |
+|some_alias: hash(ds, some_varname)    |
+|hash(ds, some_varname): Signal        |
+|some_alias: hash(ds, some_varname)    |
+|some_alias: hash(ds, some_varname)    |
+|some_alias: hash(ds, some_varname)    |
+|some_alias: hash(ds, some_varname)    |
+|...:...                               |
+|...:...                               |
+|...:...                               |
+|...:...                               |
+|...:...                               |
+|...:...                               |
+|...:...                               |
+|...:...                               |
+|...:...                               |
+|...:...                               |
+|--------------------------------------|
 ```
 
 ## Implementation
-+ The context will have one global environment and one or more processors.
++ The context will have a global environment
 + The environment
-  + is a key-value based dictionary of variable names and their data.
+  + is a hash-value dictionary
   + For example, 
     + considering a codacuda DS, the variable name is a series of alpha-numeric characters
         that the iplotDataAccess module can understand.
@@ -94,25 +66,28 @@
         to evaluating the expression.
   + The key must also encode the data-source.
     + Ex: varname=IP1, DS=JET and varname=IP1, DS=codacuda must be unique.
-+ The processor 
-  + will have access to the global environment of the context it is registered with.
-  + and a local environment for the real data, time, units information. 
-  + will need an input expression. 
++ The procedure to add a Signal,
+  + Context will need a variable name and a data source. 
     + Ex. with codacuda DS, something like `${SignalName-X-Y-Z}+${SignalNameOther}` or simply `SignalName-X-Y-Z`
     + Ex. with imasuda DS, something like `${core_profiles/profiles_1d/j_ohmic} + ${something/similar/to/the/previous/one}` or simply `core_profiles/profiles_1d/j_ohmic`
-    + If alias is provided, register the alias globally.
-  + use a parsing tool to decode the input expression.
+  + Context uses a parsing tool to decode the input expression.
   + insert the key-value (varname: resource) in the global environment.
-  + resource is a Signal.
-  + might have call some function to fetch the resource
+    + resource is a Signal.
+  + During this stage the environment cannot yet be used to evaluate expressions.
+    + The Signal's input expression should contain entries that are hash values (from the environment)
+    + At the time of addition, the Signal's input expression is in ASCII format.
+    + The parsing tool can interpret keys from its varDict, localDict member.
+  + It is required to **build** the context map.
+  + The process of building the context map implies that the existing environment must be used in the Signal's input expression.
++ An expression can be evaluated with the context.
+  + It might have call some function to fetch the resource
     + So expose a callback that shall be used to fetch the resource. This can be set in the user-app
-    + The callback parameters could be time, data, units, ....
-    + The processor will create a `Signal` object for each of the variable name i.e, the words in `${}`.
-    + We do not make any call to get the data. That is part of iplotDataAccess.
+    + The callback parameters could be time range, pulse number, no. of samples, ...
     + You are only required to provide a callback that will initialize a resource for a signal
   + now eval the expression. `core/Signal` has implementations for every mathematical operation
         and other complex stuff too(`__getitem__`). So ${Sig1} + ${Sig2} evaluates correctly in python.
-  + will initialize a couple keys in our local environment.
+  + The local environment is setup as a throw-away dictionary for current evaluation.
+  + The `evaluate` function will initialize a couple keys in the local environment.
     + `time`: the time base. (represented by `Signal.time`)
     + `data`: the ydata in case of 1D signals. (represented by `Signal.data`)
     + `data_primary`: alias for data. (represented by `Signal.data_primary`)
@@ -123,12 +98,6 @@
     + `data_secondary_unit`:represented by `data_secondary.unit`
     + more to come..
     + ....
-  + Now, within a processor `time` would evaluate to the expression's time base.
-  + Similarly `data` would evaluate to the expression's data.
-  + So on for other local variables
-  + What about aliases?
-  	+ These appear to be names that can be used anywhere in the context and even across processors
-    + These will be stored in the global environment and can be used to refer to the `core/Signal` object
     + `self` in python means the object itself. Similarly, proposed syntax to access the current row's signal's members is
       + Ex: for time access, `${self}.time`
       + Ex: for data access, `${self}.data`
@@ -139,7 +108,4 @@
          Recall that mathematical operations on `core/Signal` objects are performed on the data with proper time mixing/interpolation.
          Since `core/Signal` shall implement `__add__` and other mathematical ops. See [operators](https://docs.python.org/3/library/operator.html)
          for some of the mathematical operators `core/Signal` shall implement. Basic '+', '*', '-', '/', etc.
-    + Aliases can be used for querying the processor to evaluate an expression.
     + If the alias was registered, its valid to query an expression containing the alias.
-    + Processor should request data access to populate the `value` i.e, the Signal object in the key-value based environment.
-    + Need to work on interfacing with data access
