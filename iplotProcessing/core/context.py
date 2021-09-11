@@ -73,25 +73,39 @@ class Context:
             if not len(alias):
                 logger.info("An alias is not specified")
                 continue
+            if not len(name):
+                logger.info("Variable name is not specified")
+                continue
 
             self.env.update_alias(ds, name, alias)
 
         logger.info("Registering composite/complex aliases")
         for idx, row in table.iterrows():
+            logger.debug(f"Row: {idx}")
+
             ds = get_value(row, "DS")
             name = get_value(row, "Variable")
             alias = get_value(row, "Alias")
+            
+            if len(ds):
+                logger.info("Data source is specified")
+                continue
+            if not len(alias):
+                logger.info("An alias is not specified")
+                continue
+            if not len(name):
+                logger.info("Variable name is not specified")
+                continue
 
-            if len(alias) and not len(ds):
-                logger.debug(f"Row: {idx}")
-                self.env.update_alias(ds, name, alias)
+            self.env.update_alias(ds, name, alias)
 
         logger.info("Registering hash with signals")
         # For each row, create a signal if variable name is specified
         for idx, row in table.iterrows():
+            logger.debug(f"Row: {idx}")
+
             ds = get_value(row, "DS")
             name = get_value(row, "Variable")
-            logger.debug(f"Row: {idx}")
 
             # In order to access and share global aliases, load the signal into context.
             try:
