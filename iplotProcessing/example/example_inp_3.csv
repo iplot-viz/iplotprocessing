@@ -1,5 +1,5 @@
 DS,Variable,Stack,Row span,Col span,Envelope,Alias,x,y,z,Samples,PulseNumber,StartTime,EndTime
 emulated,core_profiles/profiles_1d/j_ohmic,0,,,,johm,,,,,,,
 emulated,core_profiles/profiles_1d/grid/rho_tor_norm,0,,,,rtn,,,,,,,
-,,1.1.1,,,,,${johm},${rtn},${johm}.time,,,,
-,,1.2.1,,,,,${johm},${rtn},${johm}.time,,,,
+,,1.1,,,,,${johm},${rtn},${johm}.time,,,,
+,,1.2,,,,,${johm},${rtn},${johm}.time,,,,
