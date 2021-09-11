@@ -1,4 +1,4 @@
 from .hasher import hash_code
-from .parsers import ExprParser, ProcParsingException
+from .parsers import Parser
 
-__all__ = ["hash_code", "ExprParser", "ProcParsingException"]
+__all__ = ["hash_code", "Parser"]
