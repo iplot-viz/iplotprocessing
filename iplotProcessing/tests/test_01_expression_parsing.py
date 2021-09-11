@@ -1,39 +1,40 @@
 import unittest
 import numpy as np
-from iplotProcessing.tools import ExprParser, ProcParsingException
+from iplotProcessing.common.errors import InvalidExpression
+from iplotProcessing.tools import Parser
 
 
 class TestExpressionParsing(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.parser = ExprParser()
+        self.parser = Parser()
 
     def test_invalid_expressions(self) -> None:
-        self.assertRaises(ProcParsingException, self.parser.setExpr, "${")
-        self.assertRaises(ProcParsingException, self.parser.setExpr, "${${")
-        self.assertRaises(ProcParsingException, self.parser.setExpr, "}")
-        self.assertRaises(ProcParsingException, self.parser.setExpr, "}$")
-        self.assertRaises(ProcParsingException, self.parser.setExpr, "}}")
-        self.assertRaises(ProcParsingException, self.parser.setExpr, "${{")
-        self.assertRaises(ProcParsingException, self.parser.setExpr, "$}")
-        self.assertRaises(ProcParsingException, self.parser.setExpr, "${time")
-        self.assertRaises(ProcParsingException, self.parser.setExpr, "time}")
-        self.assertRaises(ProcParsingException, self.parser.setExpr, "{time}")
-        self.assertRaises(ProcParsingException, self.parser.setExpr, "${{time}}")
+        self.assertRaises(InvalidExpression, self.parser.set_expression, "${")
+        self.assertRaises(InvalidExpression, self.parser.set_expression, "${${")
+        self.assertRaises(InvalidExpression, self.parser.set_expression, "}")
+        self.assertRaises(InvalidExpression, self.parser.set_expression, "}$")
+        self.assertRaises(InvalidExpression, self.parser.set_expression, "}}")
+        self.assertRaises(InvalidExpression, self.parser.set_expression, "${{")
+        self.assertRaises(InvalidExpression, self.parser.set_expression, "$}")
+        self.assertRaises(InvalidExpression, self.parser.set_expression, "${time")
+        self.assertRaises(InvalidExpression, self.parser.set_expression, "time}")
+        self.assertRaises(InvalidExpression, self.parser.set_expression, "{time}")
+        self.assertRaises(InvalidExpression, self.parser.set_expression, "${{time}}")
 
     def test_vulnerabilities(self) -> None:
-        self.assertRaises(ProcParsingException, self.parser.setExpr,
+        self.assertRaises(InvalidExpression, self.parser.set_expression,
                           "for i in range(${t}):\n\tprint(i)")
-        self.assertRaises(ProcParsingException, self.parser.setExpr,
+        self.assertRaises(InvalidExpression, self.parser.set_expression,
                           "import sys, os\nif sys.platform == ${linux}:\n\t os.system('ls')")
 
     def test_eval_simple(self) -> None:
         expr = "sin(${x})"
         subst = {"x": 3.141592653589793 * 0.5}
         
-        self.parser.setExpr(expr)
-        self.parser.substituteExpr(subst)
-        self.parser.evalExpr()
+        self.parser.set_expression(expr)
+        self.parser.substitute_var(subst)
+        self.parser.eval_expr()
         
         self.assertAlmostEqual(self.parser.result, 1.)
 
@@ -43,9 +44,9 @@ class TestExpressionParsing(unittest.TestCase):
                  "m": np.arange(0, 40, 10, dtype=np.float64),
                  "n": 10.0}
         
-        self.parser.setExpr(expr)
-        self.parser.substituteExpr(subst)
-        self.parser.evalExpr()
+        self.parser.set_expression(expr)
+        self.parser.substitute_var(subst)
+        self.parser.eval_expr()
 
         validResult = np.frombuffer(
             b'\x00\x00\x00\x00\x00\x00&@\x1d\xca_\x80:\x01$@\x86@x\x90\x7f\xa2&@\xbf\x1c\x80\xed:\x97$@')
@@ -58,15 +59,15 @@ class TestExpressionParsing(unittest.TestCase):
                  "m": np.arange(0, 40, 10, dtype=np.float64),
                  "n": 10.0}
         try:
-            self.parser.setExpr(expr)
-            self.parser.substituteExpr(subst)
-            self.parser.evalExpr()
+            self.parser.set_expression(expr)
+            self.parser.substitute_var(subst)
+            self.parser.eval_expr()
             validResult = np.frombuffer(
                 b'\x00\x00\x00\x00\x00\x00&@\x1d\xca_\x80:\x01$@\x86@x\x90\x7f\xa2&@\xbf\x1c\x80\xed:\x97$@')
             for testVal, validVal in zip(self.parser.result, validResult):
                 self.assertAlmostEqual(testVal, validVal)
         ##shall trigger an exception
-        except ProcParsingException:
+        except InvalidExpression:
             pass
 
 
