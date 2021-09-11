@@ -61,6 +61,7 @@ class Parser:
         self._compiled_obj = None
         self.result = None
         self.is_valid = False
+        self.has_time_units = False
         self.locals.clear()
         self.var_map.clear()
         self._var_counter = 0
