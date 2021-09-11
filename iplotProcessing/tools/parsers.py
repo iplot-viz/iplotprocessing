@@ -2,7 +2,7 @@ import numpy
 
 import iplotLogging.setupLogger as ls
 import re
-logger = ls.get_logger(__name__, "INFO")
+logger = ls.get_logger(__name__, "DEBUG")
 
 
 class ProcParsingException(Exception):
@@ -13,6 +13,7 @@ class ExprParser:
     markerIn = "${"
     markerOut = "}"
     keyPrefix = "key"
+    dateTimeUnitRePattern = r"(\d+)([YMWDhms]\b|ms|us|ns|ps|fs|as)"
 
     def __init__(self):
         self.expr = None
@@ -20,8 +21,12 @@ class ExprParser:
         self.compiledVersion = None
         self.result = None
         self.isExpr = False
-        self.supportedFcts = self.getFunctionList()
-        self.supportedFcts["__builtins__"] = "{}"
+        self.hasTimeUnits = False
+        self.supportedMembers = self.getMemberList()
+        self.supportedMembers["__builtins__"] = "{}"
+        self.supportedMembers.update({"np": numpy})
+        self.exceptionStrings = ["time", "data", "data_primary", "data_secondary",
+                                 "time_unit", "data_unit", "data_primary_unit", "data_secondary_unit"]
         self.localDict = {}
         self.vardict = {}
         self.counter = 0
@@ -91,6 +96,13 @@ class ExprParser:
             else:
                 self.expr = self.replaceVar(expr)
                 self.isExpr = True
+
+                for digit, unit in re.findall(self.dateTimeUnitRePattern, self.expr):
+                    self.hasTimeUnits = True
+                    matchString = f"{digit}{unit}"
+                    replaceString = f"np.timedelta64({int(digit)}, '{unit}')"
+                    logger.debug(f"Replacing '{matchString}' with '{replaceString}'")
+                    self.expr = self.expr.replace(matchString, replaceString)
                 try:
                     self.validatePreExpr()
                     logger.debug("after validate pre ")
@@ -116,18 +128,17 @@ class ExprParser:
 
     def validatePostExpr(self):
         # to do put a timeout on the compile and eval
-        # print(self.supportedFcts)
+        # print(self.supportedMembers)
         if self.compiledVersion:
             for name in self.compiledVersion.co_names:
-                if name not in self.supportedFcts and name not in self.vardict.values():
+                if name not in [*self.supportedMembers, *self.vardict.values(), *self.exceptionStrings]:
                     logger.debug("post and name=%s", name)
                     raise ProcParsingException("Invalid expression")
 
-    def getFunctionList(self):
-        from inspect import getmembers, isfunction
-        # power and some other are instances of ufunc we don  get them with isfunction
-        functions_list = [o for o in getmembers(numpy) if isfunction(
-            o[1]) or isinstance(o[1], numpy.ufunc)]
+    def getMemberList(self):
+        from inspect import getmembers
+        functions_list = [o for o in getmembers(numpy)]
+        functions_list.extend([o for o in getmembers(numpy.ndarray)])
         return dict(functions_list)
 
     def substituteExpr(self, valMap):
@@ -140,7 +151,7 @@ class ExprParser:
             try:
                 #logger.debug("eval exception ")
                 self.result = eval(self.compiledVersion,
-                                   self.supportedFcts, self.localDict)
+                                   self.supportedMembers, self.localDict)
             except ValueError as ve:
                 logger.error("Value error  %s", ve)
                 raise ProcParsingException("Invalid expression")
