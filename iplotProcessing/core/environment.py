@@ -1,39 +1,53 @@
 import typing
-from iplotProcessing.common.parameter_id import getParamsId
+from iplotProcessing.common.errors import UnboundSignal
 from iplotProcessing.core.signal import Signal
 from iplotProcessing.tools import hasher
 
-class UnboundSignalError(Exception):
-    def __init__(self, hc: str, ds: str, name: str, kwargs: dict):
-        self.hashCode = hc
-        self.ds = ds
-        self.name = name
-        self.kwargs = kwargs
-    def __str__(self):
-        return f"HashCode: {self.hashCode}, DataSource: {self.ds}, Name: {self.name}, kwargs: {self.kwargs}"
+from iplotLogging import setupLogger as sl
+
+logger = sl.get_logger(__name__, level="INFO")
+
 
 class Environment(dict):
-    def isAlias(self, name: str):
+    def add_signal(self, data_source: str, name: str) -> typing.Tuple[str, Signal]:
+        hash_code = hasher.hash_tuple((data_source, name))
+        try:
+            return self.get_signal(data_source, name)
+        except UnboundSignal:
+            k, v = hash_code, Signal()
+
+        v.data_source = data_source
+        v.name = name
+        logger.debug(f"Registered hash={hash_code} =>")
+        logger.debug(f"sig={v}, ds={v.data_source}, name={v.name}")
+        self.update({k: v})
+        return k, v
+
+    def is_alias(self, name: str):
         return isinstance(self.get(name), str)
 
-    def getSignal(self, dataSource: str, name: str, **kwargs) -> typing.Tuple[str, Signal]:
-        paramsId = getParamsId(kwargs)
-        hashCode = hasher.hash_tuple((dataSource, name, paramsId))
-        value = self.get(hashCode)
+    def get_hash(self, data_source: str, name: str) -> str:
+        hash_code = hasher.hash_tuple((data_source, name))
+        value = self.get(hash_code)
 
         if not isinstance(value, Signal):
             value = name
-            while self.isAlias(value):
+            while self.is_alias(value):
                 value = self.get(name)
-                hashCode = value
-        
-        value = self.get(hashCode)
-        if not isinstance(value, Signal):
-            raise UnboundSignalError(hashCode, dataSource, name, kwargs)
-    
-        return hashCode, value
+                hash_code = value
 
-    def updateAlias(self, dataSource: str, name: str, alias: str, **kwargs):
-        paramsId = getParamsId(kwargs)
-        key = hasher.hash_tuple((dataSource, name, paramsId))
+        return hash_code
+
+    def get_signal(self, data_source: str, name: str) -> typing.Tuple[str, Signal]:
+        hash_code = self.get_hash(data_source, name)
+        value = self.get(hash_code)
+        if not isinstance(value, Signal):
+            raise UnboundSignal(hash_code, data_source, name)
+
+        return hash_code, value
+
+    def update_alias(self, data_source: str, name: str, alias: str):
+        key = hasher.hash_tuple((data_source, name))
+        logger.debug(f"Registered alias={alias} =>")
+        logger.debug(f"ds={data_source}, name={name}, hash={key}")
         self.update({alias: key})

@@ -1,7 +1,8 @@
+from iplotProcessing.common.errors import InvalidExpression, InvalidSignalName
 from iplotProcessing.core.dobject import DObject
 from iplotLogging import setupLogger as sl
 
-logger = sl.get_logger(__name__, "DEBUG")
+logger = sl.get_logger(__name__, "INFO")
 
 
 class Signal:
@@ -53,6 +54,11 @@ class Signal:
         self._time = DObject()
         self._data_store = [DObject(), DObject()]
 
+        self._data_source = ""
+        self._name = ""
+        self._expression = ""
+        self._var_names = set()
+
     def __add__(self, other):
         sig = Signal()
         sig._time = self._time + other._time
@@ -67,6 +73,55 @@ class Signal:
             sig._data_store[i] = self._data_store[i] - other._data_store[i]
         return sig
 
+    def debug_log(self) -> str:
+        old_level = logger.level
+        logger.setLevel("DEBUG")
+        logger.debug(f"Signal instance: {id(self)}")
+        logger.debug(f"self.name: {self.name}")
+        logger.debug(f"self.expression: {self.expression}")
+        logger.debug(f"self.data_source: {self.data_source}")
+        logger.debug(f"self.composite: {self.is_composite()}")
+        logger.debug(f"len(self.var_names): {len(self.var_names)}")
+        logger.setLevel(old_level)
+
+    def is_composite(self) -> bool:
+        return len(self._var_names) > 1
+
+    @property
+    def data_source(self):
+        return self._data_source
+
+    @data_source.setter
+    def data_source(self, val: str):
+        self._data_source = val
+
+    @property
+    def expression(self):
+        return self._expression
+
+    @expression.setter
+    def expression(self, val: str):
+        if not isinstance(val, str):
+            raise InvalidExpression
+        elif not len(val):
+            raise InvalidExpression
+        self._expression = val
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, val: str):
+        if not isinstance(val, str):
+            raise InvalidSignalName
+        elif not len(val):
+            raise InvalidSignalName
+        self._name = val
+
+    @property
+    def var_names(self):
+        return self._var_names
 
     @property
     def time(self):
@@ -75,7 +130,7 @@ class Signal:
     @time.setter
     def time(self, val):
         self._time.buffer = val
-        self._time.buffer = self._time.buffer.ravel() # time has to be a 1D array!
+        self._time.buffer = self._time.buffer.ravel()  # time has to be a 1D array!
 
     @property
     def data(self):
