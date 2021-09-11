@@ -52,7 +52,7 @@ class Parser:
             counter = counter+1
 
             if counter > self.marker_in_count:
-                raise InvalidExpression("Invalid expression syntax ", expr)
+                raise InvalidExpression(f"Invalid expression syntax {expr}")
 
         return new_expr
 
@@ -114,13 +114,9 @@ class Parser:
                         self.expression, "<string>", "eval")
                     self.validate_post_compile()
                 except SyntaxError as se:
-                    logger.exception(se)
                     raise InvalidExpression(f"Syntax error {se}")
                 except ValueError as ve:
-                    logger.exception(ve)
                     raise InvalidExpression(f"Parsing error {ve}")
-                except InvalidExpression as e:
-                    logger.exception(e)
 
     def validate_pre_compile(self):
         logger.debug("Validating prior to compilation")
