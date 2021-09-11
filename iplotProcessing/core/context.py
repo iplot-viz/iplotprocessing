@@ -235,7 +235,7 @@ class Context:
             logger.debug(f"Fetching resource.")
             logger.debug(f"params: {params}")
 
-            dobj = self.data_access_callback(sig.data_source, sig.name)
+            dobj = self.data_access_callback(sig.data_source, sig.name, **params)
             Translator.new(sig.data_source).translate(dobj, sig)
 
         p.clear_expr()
