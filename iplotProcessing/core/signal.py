@@ -2,7 +2,7 @@ from iplotProcessing.common.errors import InvalidExpression, InvalidSignalName
 from iplotProcessing.core.dobject import DObject
 from iplotLogging import setupLogger as sl
 
-logger = sl.get_logger(__name__, "INFO")
+logger = sl.get_logger(__name__, "DEBUG")
 
 
 class Signal:
@@ -74,15 +74,12 @@ class Signal:
         return sig
 
     def debug_log(self) -> str:
-        old_level = logger.level
-        logger.setLevel("DEBUG")
         logger.debug(f"Signal instance: {id(self)}")
         logger.debug(f"self.name: {self.name}")
         logger.debug(f"self.expression: {self.expression}")
         logger.debug(f"self.data_source: {self.data_source}")
         logger.debug(f"self.composite: {self.is_composite()}")
         logger.debug(f"len(self.var_names): {len(self.var_names)}")
-        logger.setLevel(old_level)
 
     def is_composite(self) -> bool:
         return len(self._var_names) > 1
