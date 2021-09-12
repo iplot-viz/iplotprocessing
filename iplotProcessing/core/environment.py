@@ -9,12 +9,12 @@ logger = sl.get_logger(__name__, level="INFO")
 
 
 class Environment(dict):
-    def add_signal(self, data_source: str, name: str) -> typing.Tuple[str, Signal]:
+    def add_signal(self, data_source: str, name: str, signal_class: type=Signal, signal_params: dict={}) -> typing.Tuple[str, Signal]:
         hash_code = hasher.hash_tuple((data_source, name))
         try:
             return self.get_signal(data_source, name)
         except UnboundSignal:
-            k, v = hash_code, Signal()
+            k, v = hash_code, signal_class(**signal_params)
 
         v.data_source = data_source
         v.name = name

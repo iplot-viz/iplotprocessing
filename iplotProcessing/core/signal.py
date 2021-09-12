@@ -1,10 +1,13 @@
+from dataclasses import dataclass, field
+import typing
+
 from iplotProcessing.common.errors import InvalidExpression, InvalidSignalName
 from iplotProcessing.core.dobject import DObject
 from iplotLogging import setupLogger as sl
 
 logger = sl.get_logger(__name__, "DEBUG")
 
-
+@dataclass
 class Signal:
     """A processing object meant to provide data, unit handling for multi-dimensional
     signal processing methods.
@@ -48,16 +51,24 @@ class Signal:
     It also helps in simpler naming of singal processing methods.
 
     """
+    data_source: str=""
+    name: str="noname"
 
-    def __init__(self) -> None:
-
+    def __post_init__(self) -> None:
         self._time = DObject()
         self._data_store = [DObject(), DObject()]
 
-        self._data_source = ""
-        self._name = ""
         self._expression = ""
         self._var_names = set()
+
+    def __setattr__(self, name: str, value: typing.Any) -> None:
+        if name == "name":
+            if not isinstance(value, str):
+                raise InvalidSignalName
+            elif not len(value):
+                raise InvalidSignalName
+
+        super().__setattr__(name, value)
 
     def __add__(self, other):
         sig = Signal()
@@ -85,14 +96,6 @@ class Signal:
         return len(self._var_names) > 1
 
     @property
-    def data_source(self):
-        return self._data_source
-
-    @data_source.setter
-    def data_source(self, val: str):
-        self._data_source = val
-
-    @property
     def expression(self):
         return self._expression
 
@@ -103,18 +106,6 @@ class Signal:
         elif not len(val):
             raise InvalidExpression
         self._expression = val
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, val: str):
-        if not isinstance(val, str):
-            raise InvalidSignalName
-        elif not len(val):
-            raise InvalidSignalName
-        self._name = val
 
     @property
     def var_names(self):
@@ -128,14 +119,6 @@ class Signal:
     def time(self, val):
         self._time.buffer = val
         self._time.buffer = self._time.buffer.ravel()  # time has to be a 1D array!
-
-    @property
-    def data(self):
-        return self._data_store[0].buffer
-
-    @data.setter
-    def data(self, val):
-        self._data_store[0].buffer = val
 
     @property
     def data_primary(self):

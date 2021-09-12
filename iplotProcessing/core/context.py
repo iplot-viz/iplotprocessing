@@ -17,7 +17,6 @@ class Context:
     def __init__(self) -> None:
 
         self._env = Environment()
-        self._data_access_callback = None
 
         self._build_time = time.time_ns()
         self._mod_time = time.time_ns()
@@ -28,17 +27,6 @@ class Context:
         assert(not len(self.env))
 
     @property
-    def data_access_callback(self):
-        return self._data_access_callback
-
-    @data_access_callback.setter
-    def data_access_callback(self, val: typing.Callable):
-
-        if not callable(val):
-            raise TypeError("Callback is not callable!")
-        self._data_access_callback = val
-
-    @property
     def env(self):
         return self._env
 
@@ -47,12 +35,12 @@ class Context:
         raise AttributeError(
             "Restricted access. Cannot assign an environment. Please work with existing one.")
 
-    def import_csv(self, fname: str, **kwargs):
+    def import_csv(self, fname: str, signal_class: type=Signal, **kwargs):
 
         contents = pd.read_csv(fname, **kwargs)
-        self.import_dataframe(contents)
+        self.import_dataframe(contents, signal_class)
 
-    def import_dataframe(self, table: pd.DataFrame):
+    def import_dataframe(self, table: pd.DataFrame, signal_class: type=Signal):
 
         pd.set_option('display.max_columns', None)
         pd.set_option('display.expand_frame_repr', False)
@@ -109,15 +97,15 @@ class Context:
 
             # In order to access and share global aliases, load the signal into context.
             try:
-                self.add_signal(ds, name)
+                self.add_signal(ds, name, signal_class)
             except (InvalidSignalName, InvalidExpression) as e:
                 logger.warning(
                     f"ds: {ds}, name: {name} | Not a signal. {e}")
                 continue
 
-    def add_signal(self, data_source: str, name: str) -> typing.Tuple[str, Signal]:
+    def add_signal(self, data_source: str, name: str, signal_class: type=Signal, signal_params: dict={}) -> typing.Tuple[str, Signal]:
 
-        k, v = self.env.add_signal(data_source, name)
+        k, v = self.env.add_signal(data_source, name, signal_class, signal_params)
 
         parser = parsers.Parser()
         parser.set_expression(v.name)
@@ -135,7 +123,7 @@ class Context:
             for var_name in parser.var_map.keys():
                 v.var_names.add(var_name)
                 if not self.env.is_alias(var_name):
-                    self.add_signal(data_source, var_name)
+                    self.add_signal(data_source, var_name, signal_class, signal_params)
         elif num_vars == 1:
             v.var_names.add(parser.var_map.popitem()[0])
 
@@ -190,7 +178,7 @@ class Context:
                 f"The expression:'{expr}' uses 'self' but self_signal_hash:'{self_signal_hash}' is invalid.")
 
         ds = params.get("DS") or params.get("ds") or params.get(
-            "DataSource") or params.get("datasource") or ""
+            "DataSource") or params.get("data_source") or ""
         logger.debug(f"DS='{ds}'")
 
         # Parse it
@@ -210,33 +198,30 @@ class Context:
             if var_name == "self":
                 sig = self.env[self_signal_hash]
                 expr = expr.replace(var_name, self_signal_hash)
-                logger.debug(f"|==> replaced {var_name} with {self_signal_hash}")
+                hash_code = self_signal_hash
             else:
                 try:
-                    k, sig = self.env.get_signal(ds, var_name)
-                    logger.debug(f"k: {k} found!")
+                    hash_code, sig = self.env.get_signal(ds, var_name)
+                    logger.debug(f"k: {hash_code} found!")
                     sig.debug_log()
-                    
-                    matchString = p.marker_in + var_name + p.marker_out + '.time'
-                    if expr.count(matchString):
-                        p.has_time_units = True
-                        replacement = f"{matchString}.astype('datetime64[{sig.time_unit}]')"
-                        expr = expr.replace(matchString, replacement)
-
-                    expr = expr.replace(var_name, k)
-                    logger.debug(f"|==> replaced {var_name} with {k}")
-                    logger.debug(f"expr: {expr}")
-
+                   
                 except UnboundSignal as e:
                     if callable(unbound_signal_handler):
                         unbound_signal_handler(e.hashCode, ds, var_name)
                     continue
-            
-            logger.debug(f"Fetching resource.")
-            logger.debug(f"params: {params}")
+             
+            self.fetch_resources_recursively(sig)
 
-            dobj = self.data_access_callback(sig.data_source, sig.name, **params)
-            Translator.new(sig.data_source).translate(dobj, sig)
+            match = p.marker_in + var_name + p.marker_out + '.time'
+            if expr.count(match):
+                p.has_time_units = True
+                replacement = f"{match}.astype('datetime64[{sig.time_unit}]')"
+                expr = expr.replace(match, replacement)
+
+            expr = expr.replace(var_name, hash_code)
+            logger.debug(f"|==> replaced {var_name} with {hash_code}")
+            logger.debug(f"expr: {expr}")
+
 
         p.clear_expr()
         p.set_expression(expr)
@@ -244,9 +229,29 @@ class Context:
         p.eval_expr()
 
         if isinstance(p.result, Signal):
-            return p.result.data_primary
+            return p.result
         else:
             if p.has_time_units:
                 return p.result.astype('int64')
             else:
                 return p.result
+
+    def fetch_resources_recursively(self, sig: Signal):
+        
+        if not isinstance(sig, Signal):
+            logger.warning(f"{sig} is not an object of {type(Signal)}")
+            return
+        
+        logger.debug(f"Fetching resources for {sig}, ds={sig.data_source}, name={sig.name}")
+        sig.debug_log()
+
+        if sig.is_composite():
+            for var_name in sig.var_names:
+                sig = self.env.get_signal(sig.data_source, var_name)
+                self.fetch_resources_recursively(sig)
+        else:
+            if hasattr(sig, "get_data"):
+                sig.get_data()
+            else:
+                logger.critical(f"{sig} does not define get_data. Resource for {sig} is uninitialized.")
+            return

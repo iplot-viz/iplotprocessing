@@ -1,7 +1,9 @@
+from functools import partial
 from io import StringIO
-from iplotProcessing.core import Context
-from iplotProcessing.example.emulatedDataAccess import DataAccess
-import numpy as np
+
+from iplotProcessing.core import Context, Signal
+from iplotProcessing.example.emulatedDataAccess import SignalAdapterStub
+
 import pandas as pd
 import unittest
 import base64
@@ -43,17 +45,16 @@ valid_signal_data = {
 }
 
 
+
 class CtxRefreshTesting(unittest.TestCase):
 
     def test_ctx_refresh(self):
         ctx = Context()
-        DataAccess.secret = 1000
-        da = DataAccess()
+        SignalAdapterStub.secret = 1000
         # Input is provided in csv format.
         # The columns named 'DS', 'Variable' must be present.
         table = pd.read_csv(StringIO(inp_file), delimiter=',', keep_default_na=False)
-        ctx.import_dataframe(table)
-        ctx.data_access_callback = da.getData
+        ctx.import_dataframe(table, signal_class=SignalAdapterStub)
 
         # Now, populate the environment, i.e, initialize key-value pairs.
         ctx.build()

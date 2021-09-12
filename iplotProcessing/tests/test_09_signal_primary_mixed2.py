@@ -9,7 +9,7 @@ class SignalBasicTesting(unittest.TestCase):
         self.test_signal = Signal()
 
     def test_primary_dobject_mixed2(self):
-        self.test_signal.data = [0, 1, 2]
+        self.test_signal.data_primary = [0, 1, 2]
         self.test_signal.data_unit = "m"
         
         self.assertTrue(isinstance(self.test_signal.data_primary, np.ndarray))
