@@ -2,7 +2,7 @@ import argparse
 import os
 
 from iplotProcessing.core import Context
-from iplotProcessing.example.emulatedDataAccess import SignalAdapterStub
+from iplotProcessing.example.emulatedDataAccess import AccessHelperStub, DataAccessStub, SignalAdapterStub
 from iplotLogging import setupLogger as sl
 
 logger = sl.get_logger("iplotProcessing-Example", "INFO")
@@ -17,9 +17,13 @@ def main():
                         required=False, default=defaultExampleFile)
     args = parser.parse_args()
 
+    da = DataAccessStub()
+    AccessHelperStub.da = da
+
     # In order to use processing methods, initialize a context that
     # manages various processors within a global key-value based environment.
     ctx = Context()
+    AccessHelperStub.ctx = ctx
 
     # Input is provided in csv format.
     # The columns named 'DS', 'Variable' must be present.

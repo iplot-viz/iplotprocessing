@@ -1,7 +1,7 @@
 from io import StringIO
 
 from iplotProcessing.core import Context
-from iplotProcessing.example.emulatedDataAccess import SignalAdapterStub
+from iplotProcessing.example.emulatedDataAccess import AccessHelperStub, DataAccessStub, SignalAdapterStub
 
 import pandas as pd
 import unittest
@@ -49,6 +49,9 @@ class CtxRefreshTesting(unittest.TestCase):
 
     def test_ctx_refresh(self):
         ctx = Context()
+        da = DataAccessStub()
+        AccessHelperStub.ctx = ctx
+        AccessHelperStub.da = da
         SignalAdapterStub.secret = 1000
         # Input is provided in csv format.
         # The columns named 'DS', 'Variable' must be present.
@@ -78,7 +81,7 @@ class CtxRefreshTesting(unittest.TestCase):
             ydata = table["y"][i]
             zdata = table["z"][i]
 
-            if len(dataSource) and len(inputExpr):
+            if len(inputExpr):
                 sig_hash = ctx.env.get_hash(dataSource, inputExpr)
             else:
                 sig_hash = ''

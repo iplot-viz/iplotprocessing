@@ -1,12 +1,12 @@
 from dataclasses import dataclass, field
-from iplotProcessing.tools import parsers
 import numpy as np
 import typing
 
 from iplotProcessing.common.errors import InvalidExpression, InvalidSignalName
 from iplotProcessing.core.bobject import BufferObject
-from iplotLogging import setupLogger as sl
+from iplotProcessing.tools import parsers
 
+from iplotLogging import setupLogger as sl
 
 logger = sl.get_logger(__name__, "DEBUG")
 

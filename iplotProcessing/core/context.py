@@ -277,7 +277,7 @@ class Context:
 
         return self.modify()
 
-    def evaluate_signal(self, sig: Signal, unbound_signal_handler: typing.Callable, get_as_needed: bool = True) -> ContextT:
+    def evaluate_signal(self, sig: Signal, unbound_signal_handler: typing.Callable, fetch_on_demand: bool = True) -> ContextT:
         logger.info(f"Evaluating signal: {sig}")
         k = self.env.get_hash(sig.data_source, sig.name)
         
@@ -292,10 +292,10 @@ class Context:
                 except UnboundSignal:
                     unbound_signal_handler(hc, sig)
                     continue
-                self.evaluate_signal(v, get_as_needed, unbound_signal_handler)
+                self.evaluate_signal(v, fetch_on_demand, unbound_signal_handler)
         else:
-            if hasattr(sig, 'get_data') and get_as_needed:
-                sig.get_data()
+            if hasattr(sig, 'fetch_data') and fetch_on_demand:
+                sig.fetch_data()
 
         new_sig = parsers.Parser()          \
             .set_expression(sig.expression) \
@@ -308,10 +308,10 @@ class Context:
         
         return self
 
-    def evaluate_expr(self, expr: str, self_signal_hash: str = "", get_as_needed=True, unbound_signal_handler: typing.Callable = None, **params):
+    def evaluate_expr(self, expr: str, self_signal_hash: str = "", fetch_on_demand=True, unbound_signal_handler: typing.Callable = None, **params):
 
         logger.info(
-            f"Evaluating '{expr}', self_signal_hash='{self_signal_hash}'")
+            f"Evaluating '{expr}', self_signal_hash='{self_signal_hash}', fetch_on_demand={fetch_on_demand}")
 
         local_env = dict(self._env)
         # Update value for the keyword "self", Ex: ${self}.time, ${self}.data
@@ -357,8 +357,8 @@ class Context:
                         unbound_signal_handler(e.hashCode, ds, var_name)
                     continue
 
-                if hasattr(sig, "get_data") and get_as_needed:
-                    sig.get_data()
+            if hasattr(sig, "fetch_data") and fetch_on_demand:
+                sig.fetch_data()
 
             match = p.marker_in + var_name + p.marker_out + '.time'
             if expr.count(match) and p.has_time_units:
