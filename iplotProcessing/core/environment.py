@@ -5,21 +5,26 @@ from iplotProcessing.tools import hasher
 
 from iplotLogging import setupLogger as sl
 
-logger = sl.get_logger(__name__, level="INFO")
+logger = sl.get_logger(__name__, level="DEBUG")
 
 
 class Environment(dict):
-    def add_signal(self, data_source: str, name: str, signal_class: type=Signal, signal_params: dict={}) -> typing.Tuple[str, Signal]:
-        hash_code = hasher.hash_tuple((data_source, name))
+    def add_signal(self, data_source: str, name: str, signal_class: type = Signal, signal_params: dict = {}) -> typing.Tuple[str, Signal]:
         try:
             return self.get_signal(data_source, name)
         except UnboundSignal:
-            k, v = hash_code, signal_class(**signal_params)
-
+            v = signal_class(**signal_params)
+        
+        k = hasher.hash_tuple((data_source, name))
         v.data_source = data_source
         v.name = name
-        logger.debug(f"Registered hash={hash_code} =>")
-        logger.debug(f"sig={v}, ds={v.data_source}, name={v.name}")
+
+        logger.debug(f"Registered hash={k} =>")
+        logger.debug(f"ds={v.data_source}")
+        logger.debug(f"name={v.name}")
+        logger.debug(f"signal_class={signal_class}")
+        logger.debug(f"signal_params={signal_params}")
+        logger.debug(f"sig={v}")
         self.update({k: v})
         return k, v
 
