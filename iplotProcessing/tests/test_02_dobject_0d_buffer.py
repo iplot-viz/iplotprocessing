@@ -1,16 +1,15 @@
 import unittest
-from iplotProcessing.core.dobject import DObject
+from iplotProcessing.core.bobject import BufferObject
 import numpy as np
 
 
 class DObjectTesting(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.test_object = DObject()
+        self.test_object = BufferObject(1)
 
     def test_data_setter_getter(self) -> None:
-        self.test_object.buffer = 1
-        self.assertTrue(isinstance(self.test_object.buffer, np.ndarray))
+        self.assertTrue(isinstance(self.test_object, np.ndarray))
         self.assertEqual(self.test_object.size, 1)
 
     def test_unit_attrib(self) -> None:

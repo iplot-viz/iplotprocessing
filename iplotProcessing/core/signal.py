@@ -1,11 +1,16 @@
 from dataclasses import dataclass, field
+from iplotProcessing.tools import parsers
+import numpy as np
 import typing
 
 from iplotProcessing.common.errors import InvalidExpression, InvalidSignalName
-from iplotProcessing.core.dobject import DObject
+from iplotProcessing.core.bobject import BufferObject
 from iplotLogging import setupLogger as sl
 
+
 logger = sl.get_logger(__name__, "DEBUG")
+
+SignalT = typing.TypeVar("SignalT", bound="Signal")
 
 @dataclass
 class Signal:
@@ -52,48 +57,113 @@ class Signal:
 
     """
     data_source: str=""
-    name: str="noname"
+    name: str=""
+    _name: str = field(init=False, repr=False, default=name)
+    expression: str = ""
+    _expression: str = field(init=False, repr=False, default=expression)
+    var_names: set = set()
+    _var_names: set = field(init=False, repr=False, default_factory=set)
+    is_composite: bool=False
+    _is_composite: bool = field(init=False, repr=False, default=is_composite)
+    is_expression: bool=False
+    _is_expression: bool = field(init=False, repr=False, default=is_expression)
 
     def __post_init__(self) -> None:
-        self._time = DObject()
-        self._data_store = [DObject(), DObject()]
-
-        self._expression = ""
-        self._var_names = set()
-
-    def __setattr__(self, name: str, value: typing.Any) -> None:
-        if name == "name":
-            if not isinstance(value, str):
-                raise InvalidSignalName
-            elif not len(value):
-                raise InvalidSignalName
-
-        super().__setattr__(name, value)
+        self._time = BufferObject()
+        self._data_store = [BufferObject(), BufferObject()]
 
     def __add__(self, other):
         sig = Signal()
-        sig._time = self._time + other._time
+        sig._time = self._time
         for i in range(2):
-            sig._data_store[i] = self._data_store[i] + other._data_store[i]
+            if np.isscalar(other) or isinstance(other, np.ndarray):
+                sig._data_store[i] = self._data_store[i] + other
+            else:
+                sig._data_store[i] = self._data_store[i] + other._data_store[i]
         return sig
 
     def __sub__(self, other):
         sig = Signal()
-        sig._time = self._time - other._time
+        sig._time = self._time
         for i in range(2):
-            sig._data_store[i] = self._data_store[i] - other._data_store[i]
+            if np.isscalar(other) or isinstance(other, np.ndarray):
+                sig._data_store[i] = self._data_store[i] - other
+            else:
+                sig._data_store[i] = self._data_store[i] - other._data_store[i]
         return sig
+
+    def __mul__(self, other):
+        sig = Signal()
+        sig._time = self._time
+        for i in range(2):
+            if np.isscalar(other) or isinstance(other, np.ndarray):
+                sig._data_store[i] = self._data_store[i] * other
+            else:
+                sig._data_store[i] = self._data_store[i] * other._data_store[i]
+        return sig
+
+    def __truediv__(self, other):
+        sig = Signal()
+        sig._time = self._time
+        for i in range(2):
+            if np.isscalar(other) or isinstance(other, np.ndarray):
+                sig._data_store[i] = self._data_store[i] / other
+            else:
+                sig._data_store[i] = self._data_store[i] / other._data_store[i]
+        return sig
+
+    def __floordiv__(self, other):
+        sig = Signal()
+        sig._time = self._time
+        for i in range(2):
+            if np.isscalar(other) or isinstance(other, np.ndarray):
+                sig._data_store[i] = self._data_store[i] // other
+            else:
+                sig._data_store[i] = self._data_store[i] // other._data_store[i]
+        return sig
+
+    def copy_buffers_to(self, other: SignalT):
+        other._time = self._time
+        other._data_store[0] = self._data_store[0]
+        other._data_store[1] = self._data_store[1]
 
     def debug_log(self) -> str:
         logger.debug(f"Signal instance: {id(self)}")
         logger.debug(f"self.name: {self.name}")
         logger.debug(f"self.expression: {self.expression}")
         logger.debug(f"self.data_source: {self.data_source}")
-        logger.debug(f"self.composite: {self.is_composite()}")
+        logger.debug(f"self.composite: {self.is_composite}")
         logger.debug(f"len(self.var_names): {len(self.var_names)}")
+   
+    @property
+    def name(self) -> str:
+        return self._name
 
+    @name.setter
+    def name(self, val):
+        if (isinstance(val, property)):
+            val = "noname"
+        if not isinstance(val, str):
+            raise InvalidSignalName
+        elif not len(val):
+            raise InvalidSignalName
+        self._name = val
+
+    @property
     def is_composite(self) -> bool:
-        return len(self._var_names) > 1
+        return len(self.var_names) > 1
+
+    @is_composite.setter
+    def is_composite(self, val):
+        pass
+
+    @property
+    def is_expression(self) -> bool:
+        return parsers.Parser().set_expression(self.name).is_valid
+
+    @is_expression.setter
+    def is_expression(self, val):
+        pass
 
     @property
     def expression(self):
@@ -101,6 +171,8 @@ class Signal:
 
     @expression.setter
     def expression(self, val: str):
+        if (isinstance(val, property)):
+            val = "${noname}"
         if not isinstance(val, str):
             raise InvalidExpression
         elif not len(val):
@@ -111,30 +183,34 @@ class Signal:
     def var_names(self):
         return self._var_names
 
+    @var_names.setter
+    def var_names(self, val):
+        self._var_names = val
+
     @property
     def time(self):
-        return self._time.buffer
+        return self._time
 
     @time.setter
     def time(self, val):
-        self._time.buffer = val
-        self._time.buffer = self._time.buffer.ravel()  # time has to be a 1D array!
+        self._time = BufferObject(input_arr=val)
+        self._time = self._time.ravel().view(BufferObject)  # time has to be a 1D array!
 
     @property
     def data_primary(self):
-        return self._data_store[0].buffer
+        return self._data_store[0]
 
     @data_primary.setter
     def data_primary(self, val):
-        self._data_store[0].buffer = val
+        self._data_store[0] = BufferObject(input_arr=val)
 
     @property
     def data_secondary(self):
-        return self._data_store[1].buffer
+        return self._data_store[1]
 
     @data_secondary.setter
     def data_secondary(self, val):
-        self._data_store[1].buffer = val
+        self._data_store[1] = BufferObject(input_arr=val)
 
     @property
     def time_unit(self):
