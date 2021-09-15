@@ -1,4 +1,5 @@
 from inspect import getmembers
+import typing
 import numpy
 import re
 
@@ -7,6 +8,7 @@ import iplotLogging.setupLogger as ls
 
 logger = ls.get_logger(__name__, "DEBUG")
 
+ParserT = typing.TypeVar("ParserT", bound="Parser")
 
 class Parser:
     marker_in = "${"
@@ -56,7 +58,7 @@ class Parser:
 
         return new_expr
 
-    def clear_expr(self):
+    def clear_expr(self) -> ParserT:
         self.expression = ""
         self._compiled_obj = None
         self.result = None
@@ -66,6 +68,8 @@ class Parser:
         self.var_map.clear()
         self._var_counter = 0
         self.marker_in_count = 0
+
+        return self
 
     def is_syntax_valid(self, expr: str) -> bool:
         # make sure we have the following order ${ } ${ } otherwise fail
@@ -89,7 +93,7 @@ class Parser:
 
         return True
 
-    def set_expression(self, expr: str):
+    def set_expression(self, expr: str) -> ParserT:
         if expr.find(self.marker_in) == -1 and expr.find(self.marker_out) == -1:
             self.expression = expr
             self.is_valid = False
@@ -119,6 +123,8 @@ class Parser:
                 except ValueError as ve:
                     raise InvalidExpression(f"Parsing error {ve}")
 
+        return self
+
     def validate_pre_compile(self):
         logger.debug("Validating prior to compilation")
         # to avoid cpu tank we disable ** operator
@@ -142,12 +148,13 @@ class Parser:
         functions_list = [o for o in getmembers(parent)]
         return dict(functions_list)
 
-    def substitute_var(self, val_map):
+    def substitute_var(self, val_map) -> ParserT:
         for k in val_map.keys():
             if self.var_map.get(k):
                 self.locals[self.var_map[k]] = val_map[k]
+        return self
 
-    def eval_expr(self):
+    def eval_expr(self) -> ParserT:
         if self._compiled_obj is not None:
             try:
                 #logger.debug("eval exception ")
@@ -159,3 +166,5 @@ class Parser:
             except TypeError as te:
                 logger.exception(te)
                 raise InvalidExpression(f"Type error {te}")
+        
+        return self
