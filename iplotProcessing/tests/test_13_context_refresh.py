@@ -1,7 +1,6 @@
-from functools import partial
 from io import StringIO
 
-from iplotProcessing.core import Context, Signal
+from iplotProcessing.core import Context
 from iplotProcessing.example.emulatedDataAccess import SignalAdapterStub
 
 import pandas as pd
@@ -9,10 +8,10 @@ import unittest
 import base64
 
 inp_file = """DS,Variable,Stack,Row span,Col span,Envelope,Alias,x,y,z,Samples,PulseNumber,StartTime,EndTime
-emulated,CWS-SCSU-HR00:ML0002-LT-XI,1.1,,,1,cws2,${self}.time,${self}.data,${self}.data_secondary,100,13100/2,0,100
+emulated,CWS-SCSU-HR00:ML0002-LT-XI,1.1,,,1,cws2,${self}.time,${self}.data,${self}.data_secondary,100,,0,100
 emulated,CWS-SCSU-HR00:ML0004-LT-XI,1.1,,,1,cws4,${self}.time,${self}.data,${self}.data_secondary,,,,
 emulated,CWS-SCSU-HR00:ML0001-LT-XI,1.2,,,1,,${self}.time,${cws4}.data,${self}.data_secondary,10000,,9000,1000
-emulated,CWS-SCSU-HR00:ML0003-LT-XI,1.2,,,1,,${self}.time,${cws2}.data + (${cws4}.data * 2),${self}.data_secondary,,14000/23,,
+emulated,CWS-SCSU-HR00:ML0003-LT-XI,1.2,,,1,,${self}.time,${cws2}.data + (${cws4}.data * 2),${self}.data_secondary,,,,
 emulated,UTIL-HV-S22:TOTAL_POWER_LC13,1.3,,,1,,${self}.time,${self}.data,${self}.data_secondary,,32001,,
 """
 
@@ -84,9 +83,9 @@ class CtxRefreshTesting(unittest.TestCase):
             else:
                 sig_hash = ''
 
-            x = ctx.evaluate(xdata, sig_hash, **params)
-            y = ctx.evaluate(ydata, sig_hash, **params)
-            z = ctx.evaluate(zdata, sig_hash, **params)
+            x = ctx.evaluate_expr(xdata, sig_hash, **params)
+            y = ctx.evaluate_expr(ydata, sig_hash, **params)
+            z = ctx.evaluate_expr(zdata, sig_hash, **params)
 
             test_data_dump.update({i:
                                    {"x": base64.b64encode(x.tobytes()).decode('ascii'),
