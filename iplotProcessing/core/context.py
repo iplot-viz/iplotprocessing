@@ -183,9 +183,9 @@ class Context:
 
             stack_val = str(get_value(row, "Stack")).split('.')
             col_num = int(stack_val[0]) if len(
-                stack_val) > 0 and stack_val[0] else 1
+                stack_val) > 0 and stack_val[0] else 0
             row_num = int(stack_val[1]) if len(
-                stack_val) > 1 and stack_val[1] else 1
+                stack_val) > 1 and stack_val[1] else 0
             stack_num = int(stack_val[2]) if len(
                 stack_val) > 2 and stack_val[2] else 1
 
@@ -277,13 +277,20 @@ class Context:
 
         return self.modify()
 
-    def evaluate_signal(self, sig: Signal, unbound_signal_handler: typing.Callable, fetch_on_demand: bool = True) -> ContextT:
+    def evaluate_signal(self, sig: Signal, unbound_signal_handler: typing.Callable, fetch_on_demand: bool = True, **params) -> ContextT:
         logger.info(f"Evaluating signal: {sig}")
         k = self.env.get_hash(sig.data_source, sig.name)
-        
+
         if k not in self.env.keys():
             unbound_signal_handler(k, sig)
             return self
+
+        # Backup the existing parameters and use the parameters specified in arguments.
+        params_stack = dict()
+        for k, v in params.items():
+            if hasattr(sig, k):
+                params_stack.update({k: v})
+                setattr(sig, k, v)
 
         if sig.is_composite or sig.is_expression:
             for var_name in sig.var_names:
@@ -292,10 +299,14 @@ class Context:
                 except UnboundSignal:
                     unbound_signal_handler(hc, sig)
                     continue
-                self.evaluate_signal(v, fetch_on_demand, unbound_signal_handler)
+                self.evaluate_signal(v, fetch_on_demand, unbound_signal_handler, **params)
         else:
             if hasattr(sig, 'fetch_data') and fetch_on_demand:
                 sig.fetch_data()
+        
+        # restore the original parameters
+        for k, v in params_stack.items():
+            setattr(sig, k, v)
 
         new_sig = parsers.Parser()          \
             .set_expression(sig.expression) \
