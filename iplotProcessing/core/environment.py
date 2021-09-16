@@ -17,7 +17,7 @@ class Environment(dict):
         
         k = hasher.hash_tuple((data_source, name))
         v.data_source = data_source
-        v.name = name
+        v.set_name(name)
 
         logger.debug(f"Registered hash={k} =>")
         logger.debug(f"ds={v.data_source}")

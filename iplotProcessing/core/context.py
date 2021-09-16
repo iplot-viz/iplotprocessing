@@ -218,11 +218,12 @@ class Context:
         # Register the data_source, name.
         k, v = self.env.add_signal(
             data_source, name, signal_class, signal_params)
-        v.expression = validated_expression
+        v.set_expression(validated_expression)
+        v.var_names.clear()
 
         # Store constituent variable names
         for var_name in parser.var_map.keys():
-            v.var_names.add(var_name)
+            v.var_names.append(var_name)
 
         # Create signals for constituent var names
         for var_name in v.var_names:
@@ -238,8 +239,8 @@ class Context:
             elif v.is_expression: # this clause covers a very rare corner case. ex: name = "${CWS-SCSU-HR00:ML0004-LT-XI}"
                 _, sig = self.env.add_signal(data_source, var_name,
                             signal_class, signal_params)
-                sig.expression = parser.marker_in + var_name + parser.marker_out
-                sig.var_names.add(var_name)
+                sig.set_expression(parser.marker_in + var_name + parser.marker_out)
+                sig.var_names.append(var_name)
                 break
         
         self._mod_time = time.time_ns()
@@ -271,7 +272,7 @@ class Context:
                 k, _ = self.env.get_signal(ds, var_name)
                 logger.debug(f"k: {k} found!")
 
-                v.expression = v.expression.replace(var_name, k)
+                v.set_expression(v.expression.replace(var_name, k))
                 logger.debug(f"|==> replaced {var_name} with {k}")
                 logger.debug(f"v.expression: {v.expression}")
 

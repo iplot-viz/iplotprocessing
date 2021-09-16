@@ -58,15 +58,8 @@ class Signal:
     """
     data_source: str=""
     name: str=""
-    _name: str = field(init=False, repr=False, default=name)
     expression: str = ""
-    _expression: str = field(init=False, repr=False, default=expression)
-    var_names: set = set()
-    _var_names: set = field(init=False, repr=False, default_factory=set)
-    is_composite: bool=False
-    _is_composite: bool = field(init=False, repr=False, default=is_composite)
-    is_expression: bool=False
-    _is_expression: bool = field(init=False, repr=False, default=is_expression)
+    var_names: list = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self._time = BufferObject()
@@ -135,57 +128,31 @@ class Signal:
         logger.debug(f"self.composite: {self.is_composite}")
         logger.debug(f"len(self.var_names): {len(self.var_names)}")
    
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @name.setter
-    def name(self, val):
+    def set_name(self, val):
         if (isinstance(val, property)):
             val = "noname"
         if not isinstance(val, str):
             raise InvalidSignalName
         elif not len(val):
             raise InvalidSignalName
-        self._name = val
+        self.name = val
 
     @property
     def is_composite(self) -> bool:
         return len(self.var_names) > 1
 
-    @is_composite.setter
-    def is_composite(self, val):
-        pass
-
     @property
     def is_expression(self) -> bool:
         return parsers.Parser().set_expression(self.name).is_valid
 
-    @is_expression.setter
-    def is_expression(self, val):
-        pass
-
-    @property
-    def expression(self):
-        return self._expression
-
-    @expression.setter
-    def expression(self, val: str):
+    def set_expression(self, val: str):
         if (isinstance(val, property)):
             val = "${noname}"
         if not isinstance(val, str):
             raise InvalidExpression
         elif not len(val):
             raise InvalidExpression
-        self._expression = val
-
-    @property
-    def var_names(self):
-        return self._var_names
-
-    @var_names.setter
-    def var_names(self, val):
-        self._var_names = val
+        self.expression = val
 
     @property
     def time(self):
