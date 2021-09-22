@@ -138,9 +138,9 @@ class Environment(dict):
                 if sig.is_composite:
                     self.add_signal(signal_class, **signal_params)
                 elif sig.is_expression: # this clause covers a very rare corner case. ex: name = "${CWS-SCSU-HR00:ML0004-LT-XI}"
-                    _, sig = self._finalize_signal(signal_class, **signal_params)
-                    sig.set_expression(parser.marker_in + var_name + parser.marker_out)
-                    sig.var_names.append(var_name)
+                    _, v = self._finalize_signal(signal_class, **signal_params)
+                    v.set_expression(parser.marker_in + var_name + parser.marker_out)
+                    v.var_names.append(var_name)
                     break
             
             return uid, sig
