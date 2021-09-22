@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import typing
 
-from iplotProcessing.common.errors import InvalidExpression, InvalidSignalName
+from iplotProcessing.common.errors import InvalidExpression
 from iplotProcessing.core.bobject import BufferObject
 from iplotProcessing.tools import parsers
 
@@ -66,7 +66,7 @@ class Signal:
         self._data_store = [BufferObject(), BufferObject()]
 
     def __add__(self, other):
-        sig = Signal()
+        sig = type(other)()
         sig._time = self._time
         for i in range(2):
             if np.isscalar(other) or isinstance(other, np.ndarray):
@@ -76,7 +76,7 @@ class Signal:
         return sig
 
     def __sub__(self, other):
-        sig = Signal()
+        sig = type(other)()
         sig._time = self._time
         for i in range(2):
             if np.isscalar(other) or isinstance(other, np.ndarray):
@@ -86,7 +86,7 @@ class Signal:
         return sig
 
     def __mul__(self, other):
-        sig = Signal()
+        sig = type(other)()
         sig._time = self._time
         for i in range(2):
             if np.isscalar(other) or isinstance(other, np.ndarray):
@@ -96,7 +96,7 @@ class Signal:
         return sig
 
     def __truediv__(self, other):
-        sig = Signal()
+        sig = type(other)()
         sig._time = self._time
         for i in range(2):
             if np.isscalar(other) or isinstance(other, np.ndarray):
@@ -106,7 +106,7 @@ class Signal:
         return sig
 
     def __floordiv__(self, other):
-        sig = Signal()
+        sig = type(other)()
         sig._time = self._time
         for i in range(2):
             if np.isscalar(other) or isinstance(other, np.ndarray):
@@ -128,15 +128,6 @@ class Signal:
         logger.debug(f"self.composite: {self.is_composite}")
         logger.debug(f"len(self.var_names): {len(self.var_names)}")
    
-    def set_name(self, val):
-        if (isinstance(val, property)):
-            val = "noname"
-        if not isinstance(val, str):
-            raise InvalidSignalName
-        elif not len(val):
-            raise InvalidSignalName
-        self.name = val
-
     @property
     def is_composite(self) -> bool:
         return len(self.var_names) > 1
@@ -147,11 +138,11 @@ class Signal:
 
     def set_expression(self, val: str):
         if (isinstance(val, property)):
-            val = "${noname}"
+            val = "${self}"
         if not isinstance(val, str):
             raise InvalidExpression
         elif not len(val):
-            raise InvalidExpression
+            val = "${self}"
         self.expression = val
 
     @property

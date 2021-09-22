@@ -1,13 +1,11 @@
 class UnboundSignal(Exception):
-    def __init__(self, hc: str, ds: str, name: str):
-        self.hash_code = hc
-        self.ds = ds
-        self.name = name
+    def __init__(self, uid: str, **params):
+        self.uid = uid
+        self.params = params
 
     def __str__(self):
-        return f"""HashCode: {self.hash_code},
-        DataSource: {self.ds}, 
-        Name: {self.name}, 
+        return f"""UID: {self.uid},
+        params: {self.params}, 
         is not defined in environment"""
 
 class InvalidSignalName(Exception):

@@ -33,5 +33,16 @@ def main():
     # Now, populate the environment, i.e, initialize key-value pairs.
     ctx.build()
 
+    a = ctx.evaluate_expr("${cws2}.data_unit")
     breakpoint()
-    a = ctx.evaluate("${ml0004}.time + 20000 * 365D")
+    a = ctx.evaluate_expr("${johm}")
+    breakpoint()
+    a = ctx.evaluate_expr("${ml0002}.time")
+    breakpoint()
+    a = ctx.evaluate_expr("${ml0004}.time")
+    breakpoint()
+    a = ctx.evaluate_expr("${cwsHotBsnLvl}.time")
+    breakpoint()
+    a = ctx.evaluate_expr("${ml0004}.time + 20000 * 365D")
+    breakpoint()
+    a = ctx.evaluate_expr("${cws2}.data_unit")

@@ -36,6 +36,7 @@ class SignalAdapterStub(Signal):
     x_expr: str = ''
     y_expr: str = ''
     z_expr: str = ''
+    plot_type: str = ''
 
     def __post_init__(self):
         Signal.__post_init__(self)
@@ -53,9 +54,6 @@ class SignalAdapterStub(Signal):
 
         if self.pulse_nb is not None:
             self.title += ':' + str(self.pulse_nb)
-
-        # Account for pulse_nb in name.
-        self.name = self.title
 
         self.param_hash = ''
 

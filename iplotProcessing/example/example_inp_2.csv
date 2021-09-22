@@ -1,5 +1,5 @@
-DS,Variable,Stack,Row span,Col span,Envelope,Alias,x,y,z,Samples,PulseNumber,StartTime,EndTime
-emulated,CWS-SCSU-HR00:ML0004-LT-XI,0,,,,ml0004,,,,,,,
-,(${ml0002}+${ml0004}),1.1.1,,,,cwsHotBsnLvl,${cwsHotBsnLvl}.time,${cwsHotBsnLvl}.data,,,,,
-emulated,CWS-SCSU-HR00:ML0002-LT-XI,0,,,,ml0002,,,,,,,
-,(${cwsHotBsnLvl}+${ml0004}),1.1.2,,,,cwsHotBsnLvl12,${cwsHotBsnLvl12}.time,${cwsHotBsnLvl12}.data,,,,10,1000
+DS,Variable,Stack,Row span,Col span,Envelope,Alias,Samples,PulseNumber,StartTime,EndTime,x,y,z,Plot type
+emulated,CWS-SCSU-HR00:ML0004-LT-XI,0,,,,ml0004,,,,,,,,
+,(${ml0002}+${ml0004}),1.1.1,,,,cwsHotBsnLvl,,,,,${cwsHotBsnLvl}.time,${cwsHotBsnLvl}.data,,
+emulated,CWS-SCSU-HR00:ML0002-LT-XI,0,,,,ml0002,,,,,,,,
+,(${cwsHotBsnLvl}+${ml0004}),1.1.2,,,,cwsHotBsnLvl12,1000,,,,${cwsHotBsnLvl12}.time,${cwsHotBsnLvl12}.data,,

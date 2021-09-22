@@ -1,6 +1,6 @@
-DS,Variable,Stack,Row span,Col span,Envelope,Alias,x,y,z,Samples,PulseNumber,StartTime,EndTime
-emulated,CWS-SCSU-HR00:ML0002-LT-XI,1.1,,,1,cws2,${self}.time,${self}.data,${self}.data_secondary,100,13100/2,0,100
-emulated,CWS-SCSU-HR00:ML0004-LT-XI,1.1,,,1,cws4,${self}.time,${self}.data,${self}.data_secondary,,,,
-emulated,CWS-SCSU-HR00:ML0001-LT-XI,1.2,,,1,,${self}.time,${cws4}.data,${self}.data_secondary,10000,,9000,1000
-emulated,CWS-SCSU-HR00:ML0003-LT-XI,1.2,,,1,,${self}.time,${cws2}.data + (${cws4}.data * 2),${self}.data_secondary,,14000/23,,
-emulated,UTIL-HV-S22:TOTAL_POWER_LC13,1.3,,,1,,${self}.time,${self}.data,${self}.data_secondary,,32001,,
+DS,Variable,Stack,Row span,Col span,Envelope,Alias,Samples,PulseNumber,StartTime,EndTime,x,y,z,Plot type
+emulated,CWS-SCSU-HR00:ML0002-LT-XI,1.1,,,1,cws2,100,13100/2,0,100,${self}.time,${self}.data,${self}.data_secondary,
+emulated,CWS-SCSU-HR00:ML0004-LT-XI,1.1,,,1,cws4,,,,,${self}.time,${self}.data,${self}.data_secondary,
+emulated,CWS-SCSU-HR00:ML0001-LT-XI,1.2,,,1,,10000,,9000,1000,${self}.time,${cws4}.data,${self}.data_secondary,
+emulated,CWS-SCSU-HR00:ML0003-LT-XI,1.2,,,1,,,14000/23,,,${self}.time,${cws2}.data + (${cws4}.data * 2),${self}.data_secondary,
+emulated,UTIL-HV-S22:TOTAL_POWER_LC13,1.3,,,1,,,32001,,,${self}.time,${self}.data,${self}.data_secondary,

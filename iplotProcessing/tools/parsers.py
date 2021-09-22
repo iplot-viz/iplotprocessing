@@ -6,7 +6,7 @@ import re
 from iplotProcessing.common.errors import InvalidExpression
 import iplotLogging.setupLogger as ls
 
-logger = ls.get_logger(__name__, "DEBUG")
+logger = ls.get_logger(__name__, "INFO")
 
 ParserT = typing.TypeVar("ParserT", bound="Parser")
 

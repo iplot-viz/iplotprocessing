@@ -1,5 +1,5 @@
-DS,Variable,Stack,Row span,Col span,Envelope,Alias,x,y,z,Samples,PulseNumber,StartTime,EndTime
-emulated,${CWS-SCSU-HR00:ML0003-LT-XI}*1.2,1.1,,,1,ML003,,,,,,,
-emulated,UTIL-HV-S22-BUS3:TOTAL_POWER,2.1,4,,,,,,,,,,
-emulated,${UTIL-HV-S22:TOTAL_POWER_T15} + ${UTIL-HV-S22-BUS3:TOTAL_POWER},2.1,4,,,,,,,,,,
-emulated,UTIL-HV-S22:TOTAL_POWER_LC13,2.1,4,,,,,,,,,,
+DS,Variable,Stack,Row span,Col span,Envelope,Alias,Samples,PulseNumber,StartTime,EndTime,x,y,z,Plot type
+emulated,${CWS-SCSU-HR00:ML0003-LT-XI}*1.2,1.1,,,1,ML003,,,,,,,,
+emulated,UTIL-HV-S22-BUS3:TOTAL_POWER,2.1,4,,,,,,,,,,,
+emulated,${UTIL-HV-S22:TOTAL_POWER_T15} + ${UTIL-HV-S22-BUS3:TOTAL_POWER},2.1,4,,,,,,,,,,,
+emulated,UTIL-HV-S22:TOTAL_POWER_LC13,2.1,4,,,,,,,,,,,
