@@ -53,6 +53,7 @@ class SignalAdapterStub(Signal):
             self.title = self.name or ''
 
         if self.pulse_nb is not None:
+            self.ts_relative = True
             self.title += ':' + str(self.pulse_nb)
 
         self.param_hash = ''
