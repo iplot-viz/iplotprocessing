@@ -1,4 +1,5 @@
 import setuptools
+from iplotProcessing._version import __version__
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -9,7 +10,7 @@ setuptools.setup(
         "setuptools-git-versioning"
     ],
     version_config={
-        "starting_version": "0.0.0",
+        "version_callback": __version__,
         "template": "{tag}",
         "dirty_template": "{tag}.dev{ccount}.{sha}",
     },
