@@ -14,10 +14,13 @@ def str_to_arr(value: str):
         return str_list if len(str_list) else None
 
 def get_value(row, col_name: str, type_func=str):
-    if row[col_name] is None:
+    v = row[col_name]
+    if type_func == bool and v not in ['1', 1, 'True', 'true']:
+        v = ''
+    if v is None:
         return type_func()
     try:
-        return type_func(row[col_name])
+        return type_func(v)
     except ValueError:
         return type_func()
 
