@@ -1,3 +1,4 @@
+import importlib
 import json
 import os
 import pandas as pd
@@ -11,21 +12,31 @@ from iplotLogging import setupLogger as sl
 
 logger = sl.get_logger(__name__, level="DEBUG")
 
-DEFAULT_TBL_DESCR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "table_description.json")
+DEFAULT_TBL_DESCR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blueprint.json")
 
 class Environment(dict):
-    header: dict = {}
+    blueprint: dict = {}
 
     @staticmethod
     def get_column_names() -> typing.Iterator[str]:
-        for k, v in Environment.header.items():
+        for k, v in Environment.blueprint.items():
             if not v.get('computed'):
-                yield(v.get('label') or k)
+                yield Environment.get_column_name(k)
+
+    @staticmethod
+    def get_column_name(key: str) -> str:
+        return Environment.blueprint.get(key).get('label') or key
+
+    @staticmethod
+    def get_keys_with_override() -> typing.Iterator[str]:
+        for k, v in Environment.blueprint.items():
+            if v.get('override'):
+                yield k
 
     @staticmethod
     def construct_uid(**signal_params) -> str:
         params = []
-        for v in Environment.header.values():
+        for v in Environment.blueprint.values():
             if not v.get('no_hash'):
                 k = signal_params.get(v.get('code_name'))
                 val = signal_params.get(k)
@@ -34,7 +45,7 @@ class Environment(dict):
 
     @staticmethod
     def construct_signal(signal_class: type = Signal, **signal_params) -> Signal:
-        for v in Environment.header.values():
+        for v in Environment.blueprint.values():
             if v.get('no_construct'):
                 try:
                     signal_params.pop(v.get('code_name'))
@@ -49,7 +60,7 @@ class Environment(dict):
     @staticmethod
     def construct_params_from_signal(sig: Signal) -> dict:
         params = {}
-        for v in Environment.header.values():
+        for v in Environment.blueprint.values():
             cname = v.get('code_name')
             try:
                 value = getattr(sig, cname)
@@ -62,7 +73,7 @@ class Environment(dict):
     @staticmethod
     def construct_params_from_series(row: pd.Series) -> dict:
         params = {}
-        for k, v in Environment.header.items():
+        for k, v in Environment.blueprint.items():
             column_name = v.get('label') or k
             code_name = v.get('code_name')
             try:
@@ -72,22 +83,29 @@ class Environment(dict):
                 continue
         return params
 
-    def __init__(self, *args, header_file: os.PathLike=DEFAULT_TBL_DESCR, **kwargs):
+    def __init__(self, *args, blueprint_file: os.PathLike=DEFAULT_TBL_DESCR, **kwargs):
         super().__init__(*args, **kwargs)
         
-        logger.debug(f"Loading table description {header_file}")
-        with open(header_file) as f:
-            Environment.header = json.load(f)
-        logger.debug(f"Loaded table description {Environment.header}")
+        logger.debug(f"Loading table description {blueprint_file}")
+        with open(blueprint_file) as f:
+            Environment.blueprint = json.load(f)
+            for k, v in Environment.blueprint.items():
+                if v.get('type'):
+                    type_name = v.get('type')
+                    parts = type_name.split('.')
+                    try:
+                        type_func = getattr(importlib.import_module('.'.join(parts[:-1])), parts[-1])
+                    except ValueError:
+                        type_func = getattr(importlib.import_module("builtins"), type_name)
+                    assert callable(type_func)
+                    v.update({'type': type_func})
+                    logger.debug(f"Updated {k}.type = {type_func}")
+                    
+        logger.debug(f"Loaded table description {Environment.blueprint}")
         self._table = list()
 
-    def export_data_frame(self):
-        col_names = [e[1].get("label") or e[0] for e in Environment.header.items()]
-        col_names.append("UID")
-        return pd.DataFrame(self._table, columns=col_names).drop(columns="UID")
-
     def validate(self, mask: str, **signal_params):
-        for v in Environment.header.values():
+        for v in Environment.blueprint.values():
             code_name = v.get('code_name')
             if v.get(mask):
                 continue
@@ -148,7 +166,7 @@ class Environment(dict):
     def _finalize_signal(self, signal_class: type = Signal, **signal_params) -> typing.Tuple[str, Signal]:
 
         row_contents = {k: signal_params.get(
-            v.get('code_name')) for k, v in Environment.header.items()}
+            v.get('code_name')) for k, v in Environment.blueprint.items()}
 
         uid = self.construct_uid(**signal_params)
         sig = self.construct_signal(signal_class, **signal_params)
@@ -169,7 +187,7 @@ class Environment(dict):
         self.validate(mask='no_construct', **signal_params)
         uid = self.construct_uid(**signal_params)
         value = self.get(uid)
-        name = signal_params.get(Environment.header['Variable'].get('code_name'))
+        name = signal_params.get(Environment.blueprint['Variable'].get('code_name'))
 
         if not isinstance(value, Signal):
             value = name

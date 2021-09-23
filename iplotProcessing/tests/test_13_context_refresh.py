@@ -61,39 +61,29 @@ class CtxRefreshTesting(unittest.TestCase):
         # Now, populate the environment, i.e, initialize key-value pairs.
         ctx.build()
 
-        # Now query all processors.
+        # data that this test will generate.
         test_data_dump = {}
 
-        for i in range(table.count()['DS']):
-            # Get processor by DS and Variable names
-            dataSource = table["DS"][i]
-            inputExpr = table["Variable"][i]
+        for idx, row in table.iterrows():
 
-            params = {
-                "pulsenb": table["PulseNumber"][i],
-                "dec_samples": table["Samples"][i],
-                "ts_start": table["StartTime"][i],
-                "ts_end": table["EndTime"][i],
-            }
+            for series in ctx.parse_series(row):
 
+                params = ctx.env.construct_params_from_series(series)
 
-            xdata = table["x"][i]
-            ydata = table["y"][i]
-            zdata = table["z"][i]
+                xdata = row["x"]
+                ydata = row["y"]
+                zdata = row["z"]
 
-            if len(inputExpr):
-                sig_hash = ctx.env.get_hash(dataSource, inputExpr)
-            else:
-                sig_hash = ''
+                uid = ctx.env.construct_uid(**params)
 
-            x = ctx.evaluate_expr(xdata, sig_hash, **params)
-            y = ctx.evaluate_expr(ydata, sig_hash, **params)
-            z = ctx.evaluate_expr(zdata, sig_hash, **params)
+                x = ctx.evaluate_expr(xdata, uid, **params)
+                y = ctx.evaluate_expr(ydata, uid, **params)
+                z = ctx.evaluate_expr(zdata, uid, **params)
 
-            test_data_dump.update({i:
-                                   {"x": base64.b64encode(x.tobytes()).decode('ascii'),
-                                    "y": base64.b64encode(y.tobytes()).decode('ascii'),
-                                    "z": base64.b64encode(z.tobytes()).decode('ascii')}})
+                test_data_dump.update({idx:
+                                    {"x": base64.b64encode(x.tobytes()).decode('ascii'),
+                                        "y": base64.b64encode(y.tobytes()).decode('ascii'),
+                                        "z": base64.b64encode(z.tobytes()).decode('ascii')}})
 
         for kv1, kv2 in zip(test_data_dump.items(), valid_signal_data.items()):
             self.assertEqual(kv1[1], kv2[1])

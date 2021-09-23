@@ -48,72 +48,42 @@ class Context:
         return self.import_dataframe(contents, signal_class,
                                      assort_signals, **default_signal_params)
 
-    def parse_series(self,
-                     inp: pd.Series,
-                     default_dec_samples: int = 1000,
-                     default_ts_start: int = -1,
-                     default_ts_end: int = -1,
-                     default_pulse_nb: typing.List[str] = []
-                     ) -> typing.Iterator[pd.Series]:
+    @staticmethod
+    def parse_series(inp: pd.Series) -> typing.Iterator[pd.Series]:
 
-        column_names = list(Environment.get_column_names())
+        out = dict()
+        override_global = False
 
-        ds = get_value(inp, "DS")
-        name = get_value(inp, "Variable")
-        alias = get_value(inp, "Alias")
+        for k, v in Environment.blueprint.items():
+            type_func = v.get('type')
+            
+            if not callable(type_func):
+                continue
 
-        is_envelope = True
-        if get_value(inp, "Envelope") == '0':
-            is_envelope = False
-        elif get_value(inp, "Envelope") == '':
-            is_envelope = False
-        elif get_value(inp, "Envelope").isspace():
-            is_envelope = False
-
-        sig_dec_samples = get_value(
-            inp, "Samples", int) or default_dec_samples
-        sig_pulse_nb = default_pulse_nb if isinstance(default_pulse_nb, list) and len(
-            default_pulse_nb) > 0 else None
-        sig_ts_start = default_ts_start if default_ts_start >= 0 else None
-        sig_ts_end = default_ts_end if default_ts_end >= 0 else None
-        sig_x_expr = get_value(inp, "x") or "${self}.time"
-        sig_y_expr = get_value(inp, "y") or "${self}.data"
-        sig_z_expr = get_value(inp, "z") or "${self}.data_secondary"
-        sig_plot_type = get_value(inp, "Plot type") or "PlotXY"
-
-        # deal with per-signal overrides.
-        pulse_nb_override = get_value(inp, "PulseNumber", str_to_arr)
-        ts_start_override = get_value(inp, "StartTime", parse_timestamp)
-        ts_end_override = get_value(inp, "EndTime", parse_timestamp)
-
-        # If any of the override values is set we discard defaults
-        if ts_start_override is not None or ts_end_override is not None or pulse_nb_override is not None:
-            sig_pulse_nb = pulse_nb_override
-            sig_ts_start = ts_start_override
-            sig_ts_end = ts_end_override
-
-        sig_stack_val = str(get_value(inp, "Stack"))
-        sig_row_span = get_value(inp, "Row span", int) or 1
-        sig_col_span = get_value(inp, "Col span", int) or 1
-
-        if isinstance(sig_pulse_nb, list) and len(sig_pulse_nb) > 0:
-            for e in sig_pulse_nb:
-                data = [ds, name, alias, sig_stack_val, sig_row_span, sig_col_span, is_envelope, sig_dec_samples, e,
-                        sig_ts_start, sig_ts_end, sig_x_expr, sig_y_expr, sig_z_expr, sig_plot_type]
-                yield pd.Series(data, index=column_names)
+            column_name = Environment.get_column_name(k)
+            default_value = v.get('default')
+        
+            # Override global values with locals for fields with 'override' attribute
+            if v.get('override'):
+                value = default_value
+                override_global |= (value is not None)
+                if override_global:
+                    value = get_value(inp, column_name, type_func)
+            else:
+                value = get_value(inp, column_name, type_func) or default_value
+            
+            out.update({column_name: value})
+        
+        for k, v in out.items():
+            if isinstance(v, list) and len(v) > 0:
+                for member in v:
+                    out.update({k: member})
+                    yield pd.Series(out)
+                break
         else:
-            data = [name, ds, alias, sig_stack_val, sig_row_span, sig_col_span, is_envelope, sig_dec_samples, None,
-                    sig_ts_start, sig_ts_end, sig_x_expr, sig_y_expr, sig_z_expr, sig_plot_type]
-            yield pd.Series(data, index=column_names)
+            yield pd.Series(out)
 
-    def import_dataframe(self, table: pd.DataFrame,
-                         signal_class: type = Signal,
-                         assort_signals: typing.Callable = None,
-                         default_dec_samples: int = 1000,
-                         default_ts_start: int = -1,
-                         default_ts_end: int = -1,
-                         default_pulse_nb: typing.List[str] = []
-                         ) -> ContextT:
+    def import_dataframe(self, table: pd.DataFrame, signal_class: type = Signal, assort_signals: typing.Callable = None, **default_params) -> ContextT:
         
         for col_name in Environment.get_column_names():
             if col_name not in table.columns:
@@ -123,17 +93,17 @@ class Context:
         pd.set_option('display.expand_frame_repr', False)
         logger.info(f"\n{table}")
 
-        default_params = dict(default_dec_samples=default_dec_samples,
-                              default_ts_start=default_ts_start,
-                              default_ts_end=default_ts_end,
-                              default_pulse_nb=default_pulse_nb)
+        for key in Environment.get_keys_with_override():
+            v = Environment.blueprint.get(key)
+            code_name = v.get('code_name')
+            v.update({'default': default_params.get(code_name)})
+
         logger.info("Registering aliases")
         for idx, row in table.iterrows():
             logger.debug(f"Row: {idx}")
 
-            for parsed_row in self.parse_series(row, **default_params):
-                signal_params = Environment.construct_params_from_series(
-                    parsed_row)
+            for parsed_row in self.parse_series(row):
+                signal_params = Environment.construct_params_from_series(parsed_row)
                 uid = Environment.construct_uid(**signal_params)
                 alias = parsed_row['Alias']
                 self.env.add_alias(alias, uid)
@@ -144,25 +114,15 @@ class Context:
             signals = []
             signal_params = dict()
 
-            for parsed_row in self.parse_series(row, **default_params):
-                signal_params.update(Environment.construct_params_from_series(
-                    parsed_row))
-
-                if signal_params.get('pulse_nb') is not None:
-                    signal_params.update({'ts_relative': True})
-                    _, signal = self.env.add_signal(
-                        signal_class, **signal_params)
-                    signals.append(signal)
-                else:
-                    _, signal = self.env.add_signal(
-                        signal_class, **signal_params)
-                    signals.append(signal)
+            for parsed_row in self.parse_series(row):
+                signal_params.update(Environment.construct_params_from_series(parsed_row))
+                _, signal = self.env.add_signal(
+                    signal_class, **signal_params)
+                signals.append(signal)
 
             if not len(signal_params):
                 continue
 
-            breakpoint()
-        
             stack_val = signal_params.get('stack_val').split('.')
             col_num = int(stack_val[0]) if len(
                 stack_val) > 0 and stack_val[0] else 0
@@ -190,7 +150,7 @@ class Context:
             logger.debug(f"k: {k} | v: {v}")
             signal_params = Environment.construct_params_from_signal(v)
             logger.debug(f"{signal_params}")
-            name_key = Environment.header.get('Variable').get('code_name')
+            name_key = Environment.blueprint.get('Variable').get('code_name')
 
             # now replace
             # 1. ascii varnames with the hash codes and
@@ -224,7 +184,7 @@ class Context:
 
         signal_params = Environment.construct_params_from_signal(sig)
         if sig.is_composite or sig.is_expression:
-            name_key = Environment.header.get('Variable').get('code_name')
+            name_key = Environment.blueprint.get('Variable').get('code_name')
             for var_name in sig.var_names:
                 signal_params.update({name_key: var_name})
                 try:
