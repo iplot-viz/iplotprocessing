@@ -34,7 +34,7 @@ class Context:
         return self
 
     @property
-    def env(self):
+    def env(self) -> Environment:
         return self._env
 
     @env.setter
@@ -69,10 +69,11 @@ class Context:
         
             # Override global values with locals for fields with 'override' attribute
             if v.get('override'):
-                value = default_value
-                override_global |= (value is not None)
+                override_global |= (get_value(inp, column_name, type_func) is not None)
                 if override_global:
                     value = get_value(inp, column_name, type_func)
+                else:
+                    value = default_value
             else:
                 value = get_value(inp, column_name, type_func) or default_value
             

@@ -68,8 +68,7 @@
         "label": "Samples",
         "code_name": "dec_samples",
         "type": "int",
-        "default": "1000",
-        "override": true
+        "default": "1000"
     },
     "PulseNumber": {
         "code_name": "pulse_nb",
