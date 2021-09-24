@@ -16,7 +16,9 @@ from iplotLogging import setupLogger as sl
 
 logger = sl.get_logger(__name__, level="DEBUG")
 
-DEFAULT_TBL_DESCR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "blueprint.json")
+DEFAULT_BLUEPRINT_FILE = os.path.join(os.path.dirname(
+    os.path.abspath(__file__)), "blueprint.json")
+
 
 class Environment(dict):
     blueprint: dict = {}
@@ -87,9 +89,15 @@ class Environment(dict):
                 continue
         return params
 
-    def __init__(self, *args, blueprint_file: os.PathLike=DEFAULT_TBL_DESCR, **kwargs):
+    @staticmethod
+    def adjust_dataframe(df: pd.DataFrame):
+        for col_name in Environment.get_column_names():
+            if col_name not in df.columns:
+                df[col_name] = [''] * df.count(1).index.size
+
+    def __init__(self, *args, blueprint_file: os.PathLike = DEFAULT_BLUEPRINT_FILE, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
         logger.debug(f"Loading table description {blueprint_file}")
         with open(blueprint_file) as f:
             Environment.blueprint = json.load(f)
@@ -98,13 +106,15 @@ class Environment(dict):
                     type_name = v.get('type')
                     parts = type_name.split('.')
                     try:
-                        type_func = getattr(importlib.import_module('.'.join(parts[:-1])), parts[-1])
+                        type_func = getattr(importlib.import_module(
+                            '.'.join(parts[:-1])), parts[-1])
                     except ValueError:
-                        type_func = getattr(importlib.import_module("builtins"), type_name)
+                        type_func = getattr(
+                            importlib.import_module("builtins"), type_name)
                     assert callable(type_func)
                     v.update({'type': type_func})
                     logger.debug(f"Updated {k}.type = {type_func}")
-                    
+
         logger.debug(f"Loaded table description {Environment.blueprint}")
         self._table = list()
 
@@ -116,14 +126,17 @@ class Environment(dict):
             else:
                 assert code_name in signal_params.keys()
 
+    def export_dataframe(self) -> pd.DataFrame:
+        return pd.DataFrame(self._table)
+
     def add_signal(self, signal_class: type = Signal, **signal_params) -> typing.List[typing.Tuple[str, Signal]]:
-        
+
         logger.debug(f"signal_class={signal_class}")
         logger.debug(f"signal_params={signal_params}")
 
         self.validate(mask='no_construct', **signal_params)
 
-        name  = signal_params.get('name')
+        name = signal_params.get('name')
         parser = parsers.Parser().set_expression(name)
 
         validated_expression = ""
@@ -137,7 +150,7 @@ class Environment(dict):
             if name == '':
                 parser.clear_expr()
                 validated_expression = ''
-        
+
         # Register the signal into environment
         try:
             return self.get_signal(**signal_params)
@@ -156,15 +169,17 @@ class Environment(dict):
                     continue
 
                 signal_params.update({"name": var_name})
-                
+
                 if sig.is_composite:
                     self.add_signal(signal_class, **signal_params)
-                elif sig.is_expression: # this clause covers a very rare corner case. ex: name = "${CWS-SCSU-HR00:ML0004-LT-XI}"
+                # this clause covers a very rare corner case. ex: name = "${CWS-SCSU-HR00:ML0004-LT-XI}"
+                elif sig.is_expression:
                     _, v = self._finalize_signal(signal_class, **signal_params)
-                    v.set_expression(parser.marker_in + var_name + parser.marker_out)
+                    v.set_expression(parser.marker_in +
+                                     var_name + parser.marker_out)
                     v.var_names.append(var_name)
                     break
-            
+
             return uid, sig
 
     def _finalize_signal(self, signal_class: type = Signal, **signal_params) -> typing.Tuple[str, Signal]:
@@ -191,7 +206,8 @@ class Environment(dict):
         self.validate(mask='no_construct', **signal_params)
         uid = self.construct_uid(**signal_params)
         value = self.get(uid)
-        name = signal_params.get(Environment.blueprint['Variable'].get('code_name'))
+        name = signal_params.get(
+            Environment.blueprint['Variable'].get('code_name'))
 
         if not isinstance(value, Signal):
             value = name
