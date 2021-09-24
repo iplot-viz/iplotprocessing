@@ -1,3 +1,8 @@
+# Description: Parse, Eval expression strings in the python interpreter within a user-provided environment
+# Author: Abadie Lana
+# Changelog:
+#   Sept 2021: Added generic get_member_list function to inject outsider functions/attributes [Jaswant Sai Panchumarti]
+
 from inspect import getmembers
 import typing
 import numpy

@@ -1,3 +1,6 @@
+# Description: Coordinate and extend math capabilities to enable signal processing on multiple BufferObjects.
+# Author: Jaswant Sai Panchumarti
+
 from dataclasses import dataclass, field
 import numpy as np
 import typing

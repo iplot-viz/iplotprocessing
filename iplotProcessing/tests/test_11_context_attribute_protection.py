@@ -1,3 +1,6 @@
+# Description: Tests safe protection of context attributes
+# Author: Jaswant Sai Panchumarti
+
 import unittest
 from iplotProcessing.core import Context
 

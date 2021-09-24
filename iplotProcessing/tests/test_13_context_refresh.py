@@ -1,3 +1,6 @@
+# Description: Complete and rigorous testing of iplotProcessing.core.Context
+# Author: Jaswant Sai Panchumarti
+
 from io import StringIO
 
 from iplotProcessing.core import Context

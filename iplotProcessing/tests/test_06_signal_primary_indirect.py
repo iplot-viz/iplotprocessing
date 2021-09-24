@@ -1,3 +1,6 @@
+# Description: Tests Signal attributes
+# Author: Jaswant Sai Panchumarti
+
 import unittest
 from iplotProcessing.example.emulatedDataAccess import SignalAdapterStub
 import numpy as np

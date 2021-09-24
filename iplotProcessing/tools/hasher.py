@@ -1,3 +1,8 @@
+# Description: Construct a hash from an object's attributes
+# Author: Abadie Lana
+# Changelog:
+#   Sept 2021: Refactored hash_code to use hash_tuple. Expose hash_tuple [Jaswant Sai Panchumarti]
+
 import hashlib
 
 def hash_tuple(payload: tuple):

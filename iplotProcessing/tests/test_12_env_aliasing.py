@@ -1,3 +1,6 @@
+# Description: Tests aliasing within an environment
+# Author: Jaswant Sai Panchumarti
+
 import unittest
 from iplotProcessing.core import Context
 

@@ -1,3 +1,6 @@
+# Description: Tests Signal attributes
+# Author: Jaswant Sai Panchumarti
+
 import unittest
 from iplotProcessing.core import Signal
 import numpy as np

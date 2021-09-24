@@ -1,3 +1,6 @@
+# Description: Used by the library to indicate invalid attributes were specified
+# Author: Jaswant Sai Panchumarti
+
 class UnboundSignal(Exception):
     def __init__(self, uid: str, **params):
         self.uid = uid

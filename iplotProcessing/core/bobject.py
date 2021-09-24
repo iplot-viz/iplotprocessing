@@ -1,3 +1,6 @@
+# Description: Combine unit attribute with numpy array
+# Author: Jaswant Sai Panchumarti
+
 import numpy as np
 
 class BufferObject(np.ndarray):

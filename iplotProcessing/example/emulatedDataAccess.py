@@ -1,3 +1,6 @@
+# Description: Example blueprints of stubs necessary to use the iplotProcessing infrastructure
+# Author: Jaswant Sai Panchumarti
+
 from collections import namedtuple
 from dataclasses import dataclass
 

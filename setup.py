@@ -1,3 +1,6 @@
+# Description: Install library, example (entry-point named iprocapp) and unit tests
+# Author: Jaswant Sai Panchumarti
+
 import setuptools
 from iplotProcessing._version import __version__
 
@@ -14,8 +17,8 @@ setuptools.setup(
         "template": "{tag}",
         "dirty_template": "{tag}.dev{ccount}.{sha}",
     },
-    author="Lana Abadie",
-    author_email="lana.abadie@iter.org",
+    author="Panchumarti Jaswant EXT",
+    author_email="jaswant.panchumarti@iter.org",
     description="Data processing for applications using IDSs or CBS",
     long_description=long_description,
     url="https://git.iter.org/scm/vis/processing.git",

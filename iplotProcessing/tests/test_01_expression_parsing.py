@@ -1,3 +1,6 @@
+# Description: Tests the parser tool
+# Author: Jaswant Sai Panchumarti
+
 import unittest
 import numpy as np
 from iplotProcessing.common.errors import InvalidExpression

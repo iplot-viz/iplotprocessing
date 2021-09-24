@@ -1,3 +1,6 @@
+# Description: Tests BufferObject
+# Author: Jaswant Sai Panchumarti
+
 import unittest
 from iplotProcessing.core.bobject import BufferObject
 import numpy as np

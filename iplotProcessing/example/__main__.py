@@ -1,3 +1,6 @@
+# Description: Example demonstrating the use of iplotProcessing infrastructure
+# Author: Jaswant Sai Panchumarti
+
 import argparse
 import os
 

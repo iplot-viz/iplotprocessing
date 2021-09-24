@@ -1,3 +1,7 @@
+# Description: Provide methods to load signal metadata from a .csv file
+#              for data processing
+# Author: Jaswant Sai Panchumarti
+
 from collections import namedtuple
 import typing
 import pandas as pd

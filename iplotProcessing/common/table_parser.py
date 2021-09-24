@@ -1,3 +1,6 @@
+# Description: Helper to parse the row-column values in a table
+# Author: Jaswant Sai Panchumarti
+
 import numpy as np
 from iplotLogging import setupLogger as sl
 
@@ -34,7 +37,7 @@ def is_numeric(val):
         return True
 
 
-# TODO: Check for 0 and pass it as number (it is prbably cheked fot rue/false)
+# TODO: Check for 0 and pass it as number (it is prbably cheked fot true/false)
 # TODO: Is pulse number is overrider we discard start_time and end_time
 # TODO: Check if overriding any value at row level resets all values from timerangeselector
 # TODO: Use min/max from all plots when sharing x axis

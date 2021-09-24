@@ -1,3 +1,7 @@
+# Description: Manage aliases and signals with a Universal Identifier
+#              constructed from important fields (DataSource, VarName, Time range, Pulse number, etc)
+# Author: Jaswant Sai Panchumarti
+
 import importlib
 import json
 import os
