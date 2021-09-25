@@ -8,6 +8,7 @@ import pandas as pd
 
 from iplotProcessing.common.errors import InvalidExpression, UnboundSignal
 from iplotProcessing.common.table_parser import get_value, parse_timestamp, str_to_arr
+from iplotProcessing.core.bobject import BufferObject
 from iplotProcessing.core.environment import Environment
 from iplotProcessing.core.signal import Signal
 from iplotProcessing.tools import parsers
@@ -239,10 +240,7 @@ class Context:
         if not isinstance(local_env.get("self"), Signal) and expr.count("self"):
             logger.warning(
                 f"The expression:'{expr}' uses 'self' but self_signal_hash:'{self_signal_hash}' is invalid.")
-
-        ds = params.get("DS") or params.get("ds") or params.get(
-            "DataSource") or params.get("data_source") or ""
-        logger.debug(f"DS='{ds}'")
+            return BufferObject()
 
         # Parse it
         p = parsers.Parser()
@@ -305,7 +303,7 @@ class Context:
             p.eval_expr()
         except InvalidExpression as e:
             logger.exception(e)
-            return None
+            return BufferObject()
 
         if isinstance(p.result, Signal):
             return p.result

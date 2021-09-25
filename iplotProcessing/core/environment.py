@@ -72,7 +72,7 @@ class Environment(dict):
                 value = getattr(sig, cname)
                 params.update({cname: value})
             except AttributeError:
-                logger.warning(f"Ignoring {v}")
+                logger.debug(f"Ignoring {v}")
                 continue
         return params
 
@@ -85,7 +85,7 @@ class Environment(dict):
             try:
                 params.update({code_name: row[column_name]})
             except KeyError:
-                logger.warning(f"Ignoring {k}, {v}")
+                logger.debug(f"Ignoring {k}, {v}")
                 continue
         return params
 
