@@ -7,7 +7,7 @@ import typing
 import pandas as pd
 
 from iplotProcessing.common.errors import InvalidExpression, UnboundSignal
-from iplotProcessing.common.table_parser import get_value, parse_timestamp, str_to_arr
+from iplotProcessing.common.table_parser import get_value
 from iplotProcessing.core.bobject import BufferObject
 from iplotProcessing.core.environment import Environment
 from iplotProcessing.core.signal import Signal
@@ -61,25 +61,26 @@ class Context:
 
         for k, v in Environment.blueprint.items():
             type_func = v.get('type')
-            
+
             if not callable(type_func):
                 continue
 
             column_name = Environment.get_column_name(k)
             default_value = v.get('default')
-        
+
             # Override global values with locals for fields with 'override' attribute
             if v.get('override'):
-                override_global |= (get_value(inp, column_name, type_func) is not None)
+                override_global |= (
+                    get_value(inp, column_name, type_func) is not None)
                 if override_global:
                     value = get_value(inp, column_name, type_func)
                 else:
                     value = default_value
             else:
                 value = get_value(inp, column_name, type_func) or default_value
-            
+
             out.update({column_name: value})
-        
+
         for k, v in out.items():
             if isinstance(v, list) and len(v) > 0:
                 for member in v:
@@ -89,8 +90,12 @@ class Context:
         else:
             yield pd.Series(out)
 
-    def import_dataframe(self, table: pd.DataFrame, signal_class: type = Signal, assort_signals: typing.Callable = None, **default_params) -> ContextT:
-        
+    def import_dataframe(self,
+                         table: pd.DataFrame,
+                         signal_class: type = Signal,
+                         assort_signals: typing.Callable = None,
+                         **default_params) -> ContextT:
+
         for col_name in Environment.get_column_names():
             if col_name not in table.columns:
                 table[col_name] = [''] * table.count(1).index.size
@@ -109,7 +114,8 @@ class Context:
             logger.debug(f"Row: {idx}")
 
             for parsed_row in self.parse_series(row):
-                signal_params = Environment.construct_params_from_series(parsed_row)
+                signal_params = Environment.construct_params_from_series(
+                    parsed_row)
                 uid = Environment.construct_uid(**signal_params)
                 alias = parsed_row['Alias']
                 self.env.add_alias(alias, uid)
@@ -121,7 +127,8 @@ class Context:
             signal_params = dict()
 
             for parsed_row in self.parse_series(row):
-                signal_params.update(Environment.construct_params_from_series(parsed_row))
+                signal_params.update(
+                    Environment.construct_params_from_series(parsed_row))
                 _, signal = self.env.add_signal(
                     signal_class, **signal_params)
                 signals.append(signal)
@@ -174,7 +181,11 @@ class Context:
 
         return self
 
-    def evaluate_signal(self, sig: Signal, unbound_signal_handler: typing.Callable, fetch_on_demand: bool = True, **params) -> ContextT:
+    def evaluate_signal(self,
+                        sig: Signal,
+                        unbound_signal_handler: typing.Callable,
+                        fetch_on_demand: bool = True,
+                        **params) -> ContextT:
         logger.info(f"Evaluating signal: {sig}")
         uid = Environment.construct_uid_from_signal(sig)
 
@@ -218,13 +229,18 @@ class Context:
 
             if hasattr(new_sig, "copy_buffers_to"):
                 new_sig.copy_buffers_to(sig)
-            
+
         except InvalidExpression as e:
             logger.exception(e)
 
         return self
 
-    def evaluate_expr(self, expr: str, self_signal_hash: str = "", fetch_on_demand=True, unbound_signal_handler: typing.Callable = None, **params):
+    def evaluate_expr(self,
+                      expr: str,
+                      self_signal_hash: str = "",
+                      fetch_on_demand=True,
+                      unbound_signal_handler: typing.Callable = None,
+                      **params):
 
         logger.info(
             f"Evaluating '{expr}', self_signal_hash='{self_signal_hash}', fetch_on_demand={fetch_on_demand}")
