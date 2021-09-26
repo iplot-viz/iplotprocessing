@@ -1,7 +1,7 @@
 # Description: Coordinate and extend math capabilities to enable signal processing on multiple BufferObjects.
 # Author: Jaswant Sai Panchumarti
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 import numpy as np
 import typing
 
@@ -123,14 +123,15 @@ class Signal:
         other._data_store[0] = self._data_store[0]
         other._data_store[1] = self._data_store[1]
 
-    def debug_log(self) -> str:
-        logger.debug(f"Signal instance: {id(self)}")
-        logger.debug(f"self.name: {self.name}")
-        logger.debug(f"self.expression: {self.expression}")
-        logger.debug(f"self.data_source: {self.data_source}")
-        logger.debug(f"self.composite: {self.is_composite}")
-        logger.debug(f"len(self.var_names): {len(self.var_names)}")
-   
+    def log_string(self) -> None:
+        yield f"Signal instance: {id(self)}"
+
+        for field in fields(self):
+            yield f"self.{field.name}: {getattr(self, field.name)}"
+        yield f"self.is_composite: {self.is_composite}"
+        yield f"len(self.var_names): {len(self.var_names)}"
+        yield f"self.is_expression: {self.is_expression}"
+
     @property
     def is_composite(self) -> bool:
         return len(self.var_names) > 1
