@@ -8,7 +8,7 @@ import typing
 import numpy
 import re
 
-from iplotProcessing.common.errors import InvalidExpression
+from iplotProcessing.common.errors import InvalidExpression, InvalidVariable
 import iplotLogging.setupLogger as ls
 
 logger = ls.get_logger(__name__, "INFO")
@@ -166,10 +166,8 @@ class Parser:
                 self.result = eval(self._compiled_obj,
                                    self.supported_members, self.locals)
             except ValueError as ve:
-                logger.exception(ve)
                 raise InvalidExpression(f"Value error {ve}")
             except TypeError as te:
-                logger.exception(te)
-                raise InvalidExpression(f"Type error {te}")
+                raise InvalidVariable(self.var_map, self.locals)
         
         return self

@@ -6,7 +6,7 @@ from collections import namedtuple
 import typing
 import pandas as pd
 
-from iplotProcessing.common.errors import InvalidExpression, UnboundSignal
+from iplotProcessing.common.errors import InvalidExpression, InvalidVariable, UnboundSignal
 from iplotProcessing.common.table_parser import get_value
 from iplotProcessing.core.bobject import BufferObject
 from iplotProcessing.core.environment import Environment
@@ -14,7 +14,7 @@ from iplotProcessing.core.signal import Signal
 from iplotProcessing.tools import parsers
 from iplotLogging import setupLogger as sl
 
-logger = sl.get_logger(__name__, level="DEBUG")
+logger = sl.get_logger(__name__, level="INFO")
 
 
 SignalDescription = namedtuple('SignalDescription',
@@ -190,7 +190,8 @@ class Context:
         uid = Environment.construct_uid_from_signal(sig)
 
         if uid not in self.env.keys():
-            raise UnboundSignal(uid)
+            unbound_signal_handler(UnboundSignal(uid, **self.env.construct_params_from_signal(sig)))
+            return self
 
         # Backup the signal's values of specified parameters and use the values from the params argument.
         params_stack = dict()
@@ -231,7 +232,9 @@ class Context:
                 new_sig.copy_buffers_to(sig)
 
         except InvalidExpression as e:
-            logger.exception(e)
+            logger.warning(f"{sig.expression} is not a valid expression")
+        except InvalidVariable as e:
+            logger.warning(f"{str(e)}")
 
         return self
 
@@ -246,14 +249,15 @@ class Context:
             f"Evaluating '{expr}', self_signal_hash='{self_signal_hash}', fetch_on_demand={fetch_on_demand}")
 
         local_env = dict(self._env)
-        # Update value for the keyword "self", Ex: ${self}.time, ${self}.data
+        # Update value for the keyword 'self', 
+        # Ex: ${self}.time, ${self}.data, here 'self' is a signal with a hash supposedly in env.
         if isinstance(self_signal_hash, str) and len(self_signal_hash):
-            local_env.update({"self": self.env.get(self_signal_hash)})
+            local_env.update({'self': self.env.get(self_signal_hash)})
         else:
-            local_env.update({"self": None})
+            local_env.update({'self': None})
 
-        # Check for undesired use of self in expression.
-        if not isinstance(local_env.get("self"), Signal) and expr.count("self"):
+        # Check for undesired use of 'self' in expression.
+        if not isinstance(local_env.get('self'), Signal) and expr.count('self'):
             logger.warning(
                 f"The expression:'{expr}' uses 'self' but self_signal_hash:'{self_signal_hash}' is invalid.")
             return BufferObject()
@@ -272,7 +276,7 @@ class Context:
             logger.debug(f"var_name: {var_name}")
             sig = None
 
-            if var_name == "self":
+            if var_name == 'self':
                 uid = self_signal_hash
                 sig = self.env[self_signal_hash]
             else:
@@ -287,16 +291,16 @@ class Context:
                         raise UnboundSignal(uid)
 
                     logger.debug(f"k: {uid} found!")
-                    sig.debug_log()
+                    for line in sig.log_string():
+                        logger.debug(line)
 
                 except UnboundSignal as e:
                     logger.exception(e)
                     if callable(unbound_signal_handler):
                         unbound_signal_handler(e)
                         continue
-
-            if hasattr(sig, "fetch_data") and fetch_on_demand:
-                sig.fetch_data()
+            
+            self.evaluate_signal(sig, unbound_signal_handler, fetch_on_demand, **params)
 
             match = p.marker_in + var_name + p.marker_out + '.time'
             if expr.count(match) and p.has_time_units:
