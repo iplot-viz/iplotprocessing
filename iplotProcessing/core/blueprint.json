@@ -68,7 +68,8 @@
         "label": "Samples",
         "code_name": "dec_samples",
         "type": "int",
-        "default": "1000"
+        "default": "1000",
+        "no_hash": true
     },
     "PulseNumber": {
         "code_name": "pulse_nb",
@@ -80,13 +81,15 @@
         "code_name": "ts_start",
         "type": "iplotProcessing.common.table_parser.parse_timestamp",
         "default": "",
-        "override": true
+        "override": true,
+        "no_hash": true
     },
     "EndTime": {
         "code_name": "ts_end",
         "type": "iplotProcessing.common.table_parser.parse_timestamp",
         "default": "",
-        "override": true
+        "override": true,
+        "no_hash": true
     },
     "x": {
         "code_name": "x_expr",
