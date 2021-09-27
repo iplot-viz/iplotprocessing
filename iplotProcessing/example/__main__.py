@@ -46,6 +46,8 @@ def main():
     breakpoint()
     a = ctx.evaluate_expr("${ml0004}.data")
     breakpoint()
+    a = ctx.evaluate_expr("convolve(${ml0004}.time, ones(5), 'valid')")
+    breakpoint()
     a = ctx.evaluate_expr("${cwsHotBsnLvl}.data")
     breakpoint()
     a = ctx.evaluate_expr("${ml0004}.time + 20000 * 365D")
