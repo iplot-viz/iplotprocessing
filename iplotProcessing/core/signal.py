@@ -69,7 +69,7 @@ class Signal:
         self._data_store = [BufferObject(), BufferObject()]
 
     def __add__(self, other):
-        sig = type(other)()
+        sig = type(self)()
         sig._time = self._time
         for i in range(2):
             if np.isscalar(other) or isinstance(other, np.ndarray):
@@ -79,7 +79,7 @@ class Signal:
         return sig
 
     def __sub__(self, other):
-        sig = type(other)()
+        sig = type(self)()
         sig._time = self._time
         for i in range(2):
             if np.isscalar(other) or isinstance(other, np.ndarray):
@@ -89,7 +89,7 @@ class Signal:
         return sig
 
     def __mul__(self, other):
-        sig = type(other)()
+        sig = type(self)()
         sig._time = self._time
         for i in range(2):
             if np.isscalar(other) or isinstance(other, np.ndarray):
@@ -99,7 +99,7 @@ class Signal:
         return sig
 
     def __truediv__(self, other):
-        sig = type(other)()
+        sig = type(self)()
         sig._time = self._time
         for i in range(2):
             if np.isscalar(other) or isinstance(other, np.ndarray):
@@ -109,7 +109,7 @@ class Signal:
         return sig
 
     def __floordiv__(self, other):
-        sig = type(other)()
+        sig = type(self)()
         sig._time = self._time
         for i in range(2):
             if np.isscalar(other) or isinstance(other, np.ndarray):
@@ -155,7 +155,10 @@ class Signal:
 
     @time.setter
     def time(self, val):
-        self._time = BufferObject(input_arr=val)
+        if isinstance(val, BufferObject):
+            self._time = val
+        else:
+            self._time = BufferObject(input_arr=val)
         self._time = self._time.ravel().view(BufferObject)  # time has to be a 1D array!
 
     @property
@@ -164,7 +167,10 @@ class Signal:
 
     @data_primary.setter
     def data_primary(self, val):
-        self._data_store[0] = BufferObject(input_arr=val)
+        if isinstance(val, BufferObject):
+            self._data_store[0] = val
+        else:
+            self._data_store[0] = BufferObject(input_arr=val)
 
     @property
     def data_secondary(self):
@@ -172,7 +178,10 @@ class Signal:
 
     @data_secondary.setter
     def data_secondary(self, val):
-        self._data_store[1] = BufferObject(input_arr=val)
+        if isinstance(val, BufferObject):
+            self._data_store[1] = val
+        else:
+            self._data_store[1] = BufferObject(input_arr=val)
 
     @property
     def time_unit(self):
