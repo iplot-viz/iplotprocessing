@@ -36,6 +36,8 @@ def main():
     # Now, populate the environment, i.e, initialize key-value pairs.
     ctx.build()
 
+    a = ctx.evaluate_expr("${myavg}")
+    breakpoint()
     a = ctx.evaluate_expr("${cws2}.data_unit")
     breakpoint()
     a = ctx.evaluate_expr("${johm}")
