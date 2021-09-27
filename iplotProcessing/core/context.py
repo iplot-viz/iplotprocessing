@@ -195,8 +195,9 @@ class Context:
 
         # Backup the signal's values of specified parameters and use the values from the params argument.
         params_stack = dict()
-        for k, v in params.items():
-            if hasattr(sig, k):
+        for k in ['ts_start', 'ts_end', 'pulse_nb', 'dec_samples']:
+            v = params.get(k)
+            if hasattr(sig, k) and (v is not None):
                 params_stack.update({k: v})
                 setattr(sig, k, v)
 
