@@ -186,10 +186,13 @@ class Context:
                         unbound_signal_handler: typing.Callable,
                         fetch_on_demand: bool = True,
                         **params) -> ContextT:
+        if not isinstance(sig, Signal):
+            return self
+
         logger.info(f"Evaluating signal: {sig}")
         uid = Environment.construct_uid_from_signal(sig)
 
-        if uid not in self.env.keys():
+        if uid not in self.env.keys() and callable(unbound_signal_handler):
             unbound_signal_handler(UnboundSignal(uid, **self.env.construct_params_from_signal(sig)))
             return self
 
@@ -233,7 +236,7 @@ class Context:
                 new_sig.copy_buffers_to(sig)
 
         except InvalidExpression as e:
-            logger.warning(f"{sig.expression} is not a valid expression")
+            logger.warning(f"{sig.expression} might not be a valid expression. Error: {e}")
         except InvalidVariable as e:
             logger.warning(f"{str(e)}")
 
