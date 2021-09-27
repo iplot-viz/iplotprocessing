@@ -36,7 +36,7 @@ def align(signals: typing.List[Signal], mode=TimeAlignmentModes.MINMAX, kind=Int
         return
     
     time_unit = get_finest_time_unit(signals)
-    # rebase every signal to a common time unit
+    # rebase every signal to a common time buffer object
     for sig in signals:
         try:
             # interpolate from old time vector
