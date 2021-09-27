@@ -42,6 +42,7 @@ setuptools.setup(
         'console_scripts': ['iprocapp = iplotProcessing.example.__main__:main']
     },
     package_data = {
-        "iplotProcessing.example": ["example_inp.csv"]
+        "iplotProcessing.example": ["example_inp.csv"],
+        "iplotProcessing.core": ["blueprint.json"]
     }
 )
