@@ -8,7 +8,7 @@ import typing
 import numpy
 import re
 
-from iplotProcessing.common.errors import InvalidExpression, InvalidVariable
+from iplotProcessing.common import InvalidExpression, InvalidVariable, DATE_TIME, PRECISE_TIME
 import iplotLogging.setupLogger as ls
 
 logger = ls.get_logger(__name__, "INFO")
@@ -19,7 +19,7 @@ class Parser:
     marker_in = "${"
     marker_out = "}"
     prefix = "key"
-    date_time_unit_pattern = r"(\d+)([YMWDhms]\b|ms|us|ns|ps|fs|as)"
+    date_time_unit_pattern = rf"(\d+)([{''.join(DATE_TIME)}]\b|{'|'.join(PRECISE_TIME)})"
 
     def __init__(self):
         self.expression = ""
