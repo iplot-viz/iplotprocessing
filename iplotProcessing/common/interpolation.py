@@ -1,3 +1,6 @@
+# Description: Define kinds of interpolation.
+# Author: Jaswant Sai Panchumarti
+
 class InterpolationKind:
     LINEAR = 'linear'
     NEAREST = 'nearest',

@@ -47,7 +47,6 @@ valid_signal_data = {
 }
 
 
-
 class CtxRefreshTesting(unittest.TestCase):
 
     def test_ctx_refresh(self):
@@ -58,7 +57,8 @@ class CtxRefreshTesting(unittest.TestCase):
         SignalAdapterStub.secret = 1000
         # Input is provided in csv format.
         # The columns named 'DS', 'Variable' must be present.
-        table = pd.read_csv(StringIO(inp_file), delimiter=',', keep_default_na=False)
+        table = pd.read_csv(StringIO(inp_file),
+                            delimiter=',', keep_default_na=False)
         ctx.import_dataframe(table, signal_class=SignalAdapterStub)
 
         # Now, populate the environment, i.e, initialize key-value pairs.
@@ -84,7 +84,7 @@ class CtxRefreshTesting(unittest.TestCase):
                 z = ctx.evaluate_expr(zdata, uid, **params)
 
                 test_data_dump.update({idx:
-                                    {"x": base64.b64encode(x.tobytes()).decode('ascii'),
+                                       {"x": base64.b64encode(x.tobytes()).decode('ascii'),
                                         "y": base64.b64encode(y.tobytes()).decode('ascii'),
                                         "z": base64.b64encode(z.tobytes()).decode('ascii')}})
 

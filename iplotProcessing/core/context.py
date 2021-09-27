@@ -193,7 +193,8 @@ class Context:
         uid = Environment.construct_uid_from_signal(sig)
 
         if uid not in self.env.keys() and callable(unbound_signal_handler):
-            unbound_signal_handler(UnboundSignal(uid, **self.env.construct_params_from_signal(sig)))
+            unbound_signal_handler(UnboundSignal(
+                uid, **self.env.construct_params_from_signal(sig)))
             return self
 
         # Backup the signal's values of specified parameters and use the values from the params argument.
@@ -236,7 +237,8 @@ class Context:
                 new_sig.copy_buffers_to(sig)
 
         except InvalidExpression as e:
-            logger.warning(f"{sig.expression} might not be a valid expression. Error: {e}")
+            logger.warning(
+                f"{sig.expression} might not be a valid expression. Error: {e}")
         except InvalidVariable as e:
             logger.warning(f"{str(e)}")
 
@@ -253,7 +255,7 @@ class Context:
             f"Evaluating '{expr}', self_signal_hash='{self_signal_hash}', fetch_on_demand={fetch_on_demand}")
 
         local_env = dict(self._env)
-        # Update value for the keyword 'self', 
+        # Update value for the keyword 'self',
         # Ex: ${self}.time, ${self}.data, here 'self' is a signal with a hash supposedly in env.
         if isinstance(self_signal_hash, str) and len(self_signal_hash):
             local_env.update({'self': self.env.get(self_signal_hash)})
@@ -299,12 +301,13 @@ class Context:
                         logger.debug(line)
 
                 except UnboundSignal as e:
-                    logger.exception(e)
+                    logger.warning(f"{e}")
                     if callable(unbound_signal_handler):
                         unbound_signal_handler(e)
-                        continue
-            
-            self.evaluate_signal(sig, unbound_signal_handler, fetch_on_demand, **params)
+                    continue
+
+            self.evaluate_signal(sig, unbound_signal_handler,
+                                 fetch_on_demand, **params)
 
             match = p.marker_in + var_name + p.marker_out + '.time'
             if expr.count(match) and p.has_time_units:
@@ -325,10 +328,9 @@ class Context:
 
         try:
             p.eval_expr()
-        except InvalidExpression as e:
-            logger.exception(e)
+        except (InvalidExpression, InvalidVariable) as e:
+            logger.warning(f"{e}")
             return BufferObject()
-
         if isinstance(p.result, Signal):
             return p.result
         else:
