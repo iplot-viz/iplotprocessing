@@ -14,7 +14,7 @@ from iplotProcessing.tools import hasher, parsers
 
 from iplotLogging import setupLogger as sl
 
-logger = sl.get_logger(__name__, level="DEBUG")
+logger = sl.get_logger(__name__, level="INFO")
 
 DEFAULT_BLUEPRINT_FILE = os.path.join(os.path.dirname(
     os.path.abspath(__file__)), "blueprint.json")
