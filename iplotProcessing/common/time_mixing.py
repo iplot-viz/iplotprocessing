@@ -1,3 +1,6 @@
+# Description: Define time alignment modes.
+# Author: Jaswant Sai Panchumarti
+
 class TimeAlignmentMode:
-    MINMAX = "minmax"
+    INTERSECTION = "intersection"
     UNION = "union"

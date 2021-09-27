@@ -19,6 +19,7 @@ logger = sl.get_logger(__name__, "DEBUG")
 
 SignalT = typing.TypeVar("SignalT", bound="Signal")
 
+
 @dataclass
 class Signal:
     """A processing object meant to provide data, unit handling for multi-dimensional
@@ -26,6 +27,15 @@ class Signal:
 
     The data_store is made of of primary and secondary data objects.
     By default, simply use `data` member to get primary data object's buffer
+
+    Note on signal math
+    ===================
+    When a signal is combined with other signals in mathematical expression,
+    the default mixing mode for time alignment is an intersection
+    of the individual time arrays.
+
+    The data values are then interpolated onto this new common time base.
+    The default kind of interpolation is linear.
 
     Time
     ====
@@ -63,24 +73,25 @@ class Signal:
     It also helps in simpler naming of singal processing methods.
 
     """
-    data_source: str=""
-    name: str=""
+    data_source: str = ""
+    name: str = ""
     expression: str = ""
     var_names: list = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self._time = BufferObject()
         self._data_store = [BufferObject(), BufferObject()]
-        self._mixing_mode = TimeAlignmentMode.MINMAX
+        self._mixing_mode = TimeAlignmentMode.INTERSECTION
         self._interp_kind = InterpolationKind.LINEAR
-        
+
         self._other_bkp = [BufferObject(), BufferObject(), BufferObject()]
         self._self_bkp = [BufferObject(), BufferObject(), BufferObject()]
 
     def __operator_dispatch__(self, operator, other):
         self._self_bkp = [self.time, self.data_primary, self.data_secondary]
         if isinstance(other, Signal):
-            self._other_bkp = [other.time, other.data_primary, other.data_secondary]
+            self._other_bkp = [other.time,
+                               other.data_primary, other.data_secondary]
             __align__([self, other], self._mixing_mode, self._interp_kind)
 
     def __post_operator__(self, operator, other):
@@ -247,15 +258,16 @@ class Signal:
     def data_secondary_unit(self, val):
         self._data_store[1].unit = val
 
-def __align__(signals: typing.List[Signal], mode=TimeAlignmentMode.MINMAX, kind=InterpolationKind.LINEAR):
-    if mode == TimeAlignmentMode.MINMAX:
-        common_time = __min_max_align__(signals, kind)
+
+def __align__(signals: typing.List[Signal], mode=TimeAlignmentMode.INTERSECTION, kind=InterpolationKind.LINEAR):
+    if mode == TimeAlignmentMode.INTERSECTION:
+        common_time = __intersection__(signals, kind)
     elif mode == TimeAlignmentMode.UNION:
-        common_time = __union_align__(signals, kind)
+        common_time = __union__(signals, kind)
     else:
         logger.warning(f"Unsupported alignment mode: {mode}")
         return
-    
+
     time_unit = __get_finest_time_unit__(signals)
 
     # rebase every signal to a common time buffer object
@@ -263,21 +275,25 @@ def __align__(signals: typing.List[Signal], mode=TimeAlignmentMode.MINMAX, kind=
         try:
             # interpolate from old time vector
             if len(sig.data_primary) and sig.data_primary.ndim == 1:
-                f_primary = interp1d(sig.time, sig.data_primary, kind=kind, fill_value='extrapolate')
+                f_primary = interp1d(
+                    sig.time, sig.data_primary, kind=kind, fill_value='extrapolate')
             else:
                 f_primary = None
             if len(sig.data_secondary) and sig.data_secondary.ndim == 1:
-                f_secondary = interp1d(sig.time, sig.data_secondary, kind=kind, fill_value='extrapolate')
+                f_secondary = interp1d(
+                    sig.time, sig.data_secondary, kind=kind, fill_value='extrapolate')
             else:
                 f_secondary = None
-            
+
             sig.time = BufferObject(input_arr=common_time, unit=time_unit)
             if f_primary:
                 dp_unit = sig.data_primary_unit
-                sig.data_primary = BufferObject(input_arr=f_primary(sig.time), unit=dp_unit)
+                sig.data_primary = BufferObject(
+                    input_arr=f_primary(sig.time), unit=dp_unit)
             if f_secondary:
                 ds_unit = sig.data_secondary_unit
-                sig.data_secondary = BufferObject(input_arr=f_secondary(sig.time), unit=ds_unit)
+                sig.data_secondary = BufferObject(
+                    input_arr=f_secondary(sig.time), unit=ds_unit)
         except AttributeError:
             continue
 
@@ -304,13 +320,13 @@ def __get_coarsest_time_unit__(signals: typing.List[Signal]) -> str:
     return DATE_TIME_PRECISE[idx]
 
 
-def __min_max_align__(signals: typing.List[Signal], kind=InterpolationKind.LINEAR):
+def __intersection__(signals: typing.List[Signal], kind=InterpolationKind.LINEAR):
 
     num_points = 0
     tmin = 0
     tmax = np.iinfo(np.int64).max
     time_dtype = np.int64
-    
+
     for sig in signals:
         try:
             tmin = max(min(sig.time), tmin)
@@ -320,13 +336,13 @@ def __min_max_align__(signals: typing.List[Signal], kind=InterpolationKind.LINEA
                 time_dtype = np.float64
         except AttributeError:
             continue
-    
+
     tvec = np.linspace(tmin, tmax, num_points + 1, dtype=time_dtype)
     return tvec
 
 
-def __union_align__(signals: typing.List[Signal], kind=InterpolationKind.LINEAR):
-    
+def __union__(signals: typing.List[Signal], kind=InterpolationKind.LINEAR):
+
     num_points = 0
     tmin = np.iinfo(np.int64).max
     tmax = 0
@@ -341,6 +357,6 @@ def __union_align__(signals: typing.List[Signal], kind=InterpolationKind.LINEAR)
                 time_dtype = np.float64
         except AttributeError:
             continue
-    
+
     tvec = np.linspace(tmin, tmax, num_points, dtype=time_dtype)
     return tvec
