@@ -1,7 +1,9 @@
 import unittest
 
 from iplotProcessing.core import Signal, BufferObject
-from iplotProcessing.math.pre_processing.time_mixing import InterpolationKind, TimeAlignmentModes, align
+from iplotProcessing.math.pre_processing.time_mixing import time_align
+from iplotProcessing.common.time_mixing import TimeAlignmentMode
+from iplotProcessing.common.interpolation import InterpolationKind
 
 class MinMaxTimeAlign(unittest.TestCase):
     def setUp(self) -> None:
@@ -25,14 +27,14 @@ class MinMaxTimeAlign(unittest.TestCase):
         return super().setUp()
     
     def test_align_1(self):
-        align(self.signals_set_1, mode=TimeAlignmentModes.UNION, kind=InterpolationKind.LINEAR)
+        time_align(self.signals_set_1, mode=TimeAlignmentMode.UNION, kind=InterpolationKind.LINEAR)
         valid_values = [0,  6, 12, 18, 25, 31, 37, 43, 50]
         for sig in self.signals_set_1:
             for v1, v2 in zip(valid_values, sig.time):
                 self.assertEqual(v1, v2)
 
     def test_align_2(self):
-        align(self.signals_set_2, mode=TimeAlignmentModes.UNION, kind=InterpolationKind.LINEAR)
+        time_align(self.signals_set_2, mode=TimeAlignmentMode.UNION, kind=InterpolationKind.LINEAR)
         valid_values = [0, 0, 1, 2, 2, 3, 4, 4, 5, 6]
         for sig in self.signals_set_2:
             for v1, v2 in zip(valid_values, sig.time):
