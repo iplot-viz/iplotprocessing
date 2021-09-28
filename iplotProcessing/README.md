@@ -20,24 +20,24 @@
 + The implementation makes sure aliases are available prior to addition of new signals.
 ```bash
 |--------------ENVIRONMENT-------------|
-|hash(ds, some_varname): Signal        |
-|hash(ds, some_varname): Signal        |
-|hash(ds, some_varname): Signal        |
-|some_alias: hash(ds, some_varname)    |
-|hash(ds, some_varname): Signal        |
-|hash(ds, some_varname): Signal        |
-|hash(ds, some_varname): Signal        |
-|hash(ds, some_varname): Signal        |
-|hash(ds, some_varname): Signal        |
-|hash(ds, some_varname): Signal        |
-|hash(ds, some_varname): Signal        |
-|some_alias: hash(ds, some_varname)    |
-|some_alias: hash(ds, some_varname)    |
-|hash(ds, some_varname): Signal        |
-|some_alias: hash(ds, some_varname)    |
-|some_alias: hash(ds, some_varname)    |
-|some_alias: hash(ds, some_varname)    |
-|some_alias: hash(ds, some_varname)    |
+|hash(params): Signal        |
+|hash(params): Signal        |
+|hash(params): Signal        |
+|some_alias: hash(params)    |
+|hash(params): Signal        |
+|hash(params): Signal        |
+|hash(params): Signal        |
+|hash(params): Signal        |
+|hash(params): Signal        |
+|hash(params): Signal        |
+|hash(params): Signal        |
+|some_alias: hash(params)    |
+|some_alias: hash(params)    |
+|hash(params): Signal        |
+|some_alias: hash(params)    |
+|some_alias: hash(params)    |
+|some_alias: hash(params)    |
+|some_alias: hash(params)    |
 |...:...                               |
 |...:...                               |
 |...:...                               |
@@ -55,6 +55,15 @@
 + The context will have a global environment
 + The environment
   + is a hash-value dictionary
+  + uses a `blueprint.json` file to 
+    + specifies labels
+    + initialize the column names from labels or the key names
+    + specifies `code_name` that shall be used for the parameters in Python code.
+    + create hash from parameters with `no_hash=True`
+    + construct a signal from parameters without the `no_construct=True`
+    + specifies the type of the parameter
+    + specifies the default values
+    + indicates if a parameter's value (when specified in the row) should override the default 
   + For example, 
     + considering a codacuda DS, the variable name is a series of alpha-numeric characters
         that the iplotDataAccess module can understand.
@@ -66,6 +75,7 @@
         to evaluating the expression.
   + The key must also encode the data-source.
     + Ex: varname=IP1, DS=JET and varname=IP1, DS=codacuda must be unique.
+  + The hash will be constructed from a set of parameters that have the `no_hash` value set to `true`
 + The procedure to add a Signal,
   + Context will need a variable name and a data source. 
     + Ex. with codacuda DS, something like `${SignalName-X-Y-Z}+${SignalNameOther}` or simply `SignalName-X-Y-Z`
