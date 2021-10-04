@@ -66,18 +66,7 @@ class Context:
                 continue
 
             column_name = Environment.get_column_name(k)
-            default_value = v.get('default')
-
-            # Override global values with locals for fields with 'override' attribute
-            if v.get('override'):
-                override_global |= (
-                    get_value(inp, column_name, type_func) is not None)
-                if override_global:
-                    value = get_value(inp, column_name, type_func)
-                else:
-                    value = default_value
-            else:
-                value = get_value(inp, column_name, type_func) or default_value
+            value = get_value(inp, column_name, type_func) or v.get('default')
 
             out.update({column_name: value})
 
