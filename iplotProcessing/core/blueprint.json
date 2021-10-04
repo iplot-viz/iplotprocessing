@@ -69,6 +69,7 @@
         "code_name": "dec_samples",
         "type": "int",
         "default": "1000",
+        "override": true,
         "no_hash": true
     },
     "PulseNumber": {
