@@ -202,7 +202,7 @@ class Context:
         for k in ['ts_start', 'ts_end', 'pulse_nb', 'dec_samples']:
             v = params.get(k)
             if hasattr(sig, k) and (v is not None):
-                params_stack.update({k: v})
+                params_stack.update({k: getattr(sig, k)})
                 setattr(sig, k, v)
 
         signal_params = Environment.construct_params_from_signal(sig)
