@@ -87,6 +87,57 @@ class Signal:
         self._other_bkp = [BufferObject(), BufferObject(), BufferObject()]
         self._self_bkp = [BufferObject(), BufferObject(), BufferObject()]
 
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        # Apply to data_store.
+        result_signals = [None] * ufunc.nout
+
+        for idx, buffer in enumerate(self._data_store):
+            args = ((i._data_store[idx] if isinstance(i, Signal) else i)
+                    for i in inputs)
+            outputs = kwargs.pop('out', None)
+            if outputs:
+                kwargs['out'] = tuple((o._data_store[idx] if isinstance(
+                    o, Signal) else o) for o in outputs)
+            else:
+                outputs = (None,) * ufunc.nout
+            try:
+                results = buffer.__array_ufunc__(ufunc, method, *args,
+                                                 **kwargs)  # pylint: disable=no-member
+            except Exception as e:
+                logger.debug(e)
+                continue
+
+            if results is NotImplemented:
+                return NotImplemented
+            if method == 'at':
+                return
+            if ufunc.nout == 1:
+                results = (results,)
+
+            results = tuple((result if output is None else output)
+                            for result, output in zip(results, outputs))
+
+            iout = 0
+            for ds, output in zip(results, outputs):
+                if output is None:
+                    result_signals[iout] = type(self)()
+                    self.copy_buffers_to(result_signals[iout])
+                    if np.isscalar(ds) or len(ds) == 1:
+                        result_signals[iout]._data_store[idx] = BufferObject(
+                            [ds] * len(self._time))
+                    else:
+                        result_signals[iout]._data_store[idx] = ds
+                else:
+                    if np.isscalar(ds) or len(ds) == 1:
+                        output._data_store[idx] = BufferObject(
+                            [ds] * len(output._time))
+                    else:
+                        output._data_store[idx] = ds
+                    result_signals[iout] = output
+                iout += 1
+
+        return result_signals[0] if len(result_signals) == 1 else result_signals
+
     def __operator_dispatch__(self, operator, other):
         self._self_bkp = [self.time, self.data_primary, self.data_secondary]
         if isinstance(other, Signal):

@@ -175,6 +175,7 @@ class Context:
                         unbound_signal_handler: typing.Callable,
                         fetch_on_demand: bool = True,
                         **params) -> ContextT:
+
         if not isinstance(sig, Signal):
             return self
 
@@ -216,11 +217,13 @@ class Context:
         for k, v in params_stack.items():
             setattr(sig, k, v)
         try:
-            new_sig = parsers.Parser()          \
-                .set_expression(sig.expression) \
-                .substitute_var(self.env)       \
-                .eval_expr()                    \
-                .result
+            p = parsers.Parser()
+            p.inject(p.get_member_list(type(sig)))
+            p.set_expression(sig.expression)
+            p.substitute_var(self.env)
+            p.eval_expr()
+
+            new_sig = p.result
 
             if hasattr(new_sig, "copy_buffers_to"):
                 new_sig.copy_buffers_to(sig)
@@ -259,7 +262,8 @@ class Context:
 
         # Parse it
         p = parsers.Parser()
-        p.supported_members.update(p.get_member_list(Signal))
+        p.inject(p.get_member_list(Signal))
+        p.inject({'data': None})
         p.set_expression(expr)
 
         if not p.is_valid:
@@ -310,6 +314,7 @@ class Context:
             expr = expr.replace(var_name, uid)
             logger.debug(f"|==> replaced {var_name} with {uid}")
             logger.debug(f"expr: {expr}")
+            p.inject(p.get_member_list(type(sig)))
 
         p.clear_expr()
         p.set_expression(expr)

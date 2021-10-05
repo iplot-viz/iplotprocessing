@@ -15,6 +15,7 @@ logger = ls.get_logger(__name__, "INFO")
 
 ParserT = typing.TypeVar("ParserT", bound="Parser")
 
+
 class Parser:
     marker_in = "${"
     marker_out = "}"
@@ -28,13 +29,24 @@ class Parser:
         self.result = None
         self.is_valid = False
         self.has_time_units = False
-        self.supported_members = self.get_member_list(numpy)
-        self.supported_members.update({"np": numpy})
-        self.supported_members.update(self.get_member_list(numpy.ndarray))
-        self.supported_members["__builtins__"] = "{}"
+        self._supported_member_names = set()
+        self._supported_members = dict()
+        self.inject(self.get_member_list(numpy))
+        self.inject(self.get_member_list(numpy.ndarray))
+        self.inject({"np": numpy})
+        self.inject({"__builtins__": '{}'})
         self.locals = {}
         self.var_map = {}
         self._var_counter = 0
+
+    @property
+    def supported_members(self) -> dict:
+        return self._supported_members
+
+    def inject(self, members: dict):
+        self._supported_members.update(members)
+        for k in members.keys():
+            self._supported_member_names.add(k)
 
     def replace_var(self, expr: str) -> str:
         new_expr = expr
@@ -146,10 +158,11 @@ class Parser:
         # print(self.supported_members)
         if self._compiled_obj:
             for name in self._compiled_obj.co_names:
-                if name not in [*self.supported_members, *self.var_map.values()]:
+                if name not in self._supported_member_names and name not in self.var_map.values():
                     raise InvalidExpression(f"Undefined name {name}")
 
-    def get_member_list(self, parent):
+    @staticmethod
+    def get_member_list(parent):
         functions_list = [o for o in getmembers(parent)]
         return dict(functions_list)
 
@@ -168,6 +181,7 @@ class Parser:
             except ValueError as ve:
                 raise InvalidExpression(f"Value error {ve}")
             except TypeError as te:
+                logger.warning(f"Type error {te}")
                 raise InvalidVariable(self.var_map, self.locals)
-        
+
         return self
