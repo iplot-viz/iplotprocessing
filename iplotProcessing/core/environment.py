@@ -21,26 +21,58 @@ DEFAULT_BLUEPRINT_FILE = os.path.join(os.path.dirname(
 
 
 class Environment(dict):
-    blueprint: dict = {}
+    """
+    The environment is a key-value based dictionary of {**UID**: :class:`iplotProcessing.core.Signal`} like items. 
+    It derives the Python dict class and provides alias management among other things.
+
+    :param blueprint_file: your blueprint file, defaults to DEFAULT_BLUEPRINT_FILE
+    :type blueprint_file: os.PathLike, optional
+    """
+
+    blueprint: dict = {} #: The blueprint defines all the information necessary to initialize Signal objects.
 
     @staticmethod
     def get_column_names() -> typing.Iterator[str]:
+        """Human readable column names.
+
+        :return: an iterator of column names
+        :rtype: typing.Iterator[str]
+        """
         for k, v in Environment.blueprint.items():
             if not v.get('computed'):
                 yield Environment.get_column_name(k)
 
     @staticmethod
     def get_column_name(key: str) -> str:
+        """A column name
+
+        :param key: the name of a key in the blueprint.json file
+        :type key: str
+        :return: column name
+        :rtype: str
+        """
         return Environment.blueprint.get(key).get('label') or key
 
     @staticmethod
     def get_keys_with_override() -> typing.Iterator[str]:
+        """Find all the keys with the 'override' flag.
+
+        :return: an iterator over the resulting keys
+        :rtype: typing.Iterator[str]
+        """
         for k, v in Environment.blueprint.items():
             if v.get('override'):
                 yield k
 
     @staticmethod
     def construct_uid(**signal_params) -> str:
+        """Generate a unique identifier from the parameters.
+
+        :param signal_params: parameters that will be used to generate the UID
+        :type signal_params: dict
+        :return: a unique identifier string
+        :rtype: str
+        """
         params = []
         for v in Environment.blueprint.values():
             if not v.get('no_hash'):
@@ -51,6 +83,15 @@ class Environment(dict):
 
     @staticmethod
     def construct_signal(signal_class: type = Signal, **signal_params) -> Signal:
+        """Construct a Signal object with the given signal class using the provided parameters.
+
+        :param signal_class: your implementation of :class:`iplotProcessing.core.Signal`, defaults to :class:`iplotProcessing.core.Signal`
+        :type signal_class: type, optional
+        :param signal_params: parameters that will be passed on to `signal_class` constructor.
+        :type signal_params: dict
+        :return: the Signal object
+        :rtype: Signal
+        """
         for v in Environment.blueprint.values():
             if v.get('no_construct'):
                 try:
@@ -61,10 +102,24 @@ class Environment(dict):
 
     @staticmethod
     def construct_uid_from_signal(sig: Signal) -> str:
+        """Generate a unique identifier corresponding to the signal that is conforming to the blueprint.json file 
+
+        :param signal: a Signal object
+        :type signal: Signal
+        :return: a unique identifier string
+        :rtype: str
+        """
         return Environment.construct_uid(**Environment.construct_params_from_signal(sig))
 
     @staticmethod
     def construct_params_from_signal(sig: Signal) -> dict:
+        """Generate a dictionary of parameters that is conforming to the blueprint.json file 
+
+        :param sig: a Signal object
+        :type sig: Signal
+        :return: a dictionary of parameters.
+        :rtype: dict
+        """
         params = {}
         for v in Environment.blueprint.values():
             cname = v.get('code_name')
@@ -78,6 +133,13 @@ class Environment(dict):
 
     @staticmethod
     def construct_params_from_series(row: pd.Series) -> dict:
+        """enerate a dictionary of parameters that is conforming to the blueprint.json file 
+
+        :param row: a row from a data frame.
+        :type row: pd.Series
+        :return: a dictionary of parameters.
+        :rtype: dict
+        """
         params = {}
         for k, v in Environment.blueprint.items():
             column_name = v.get('label') or k
@@ -91,6 +153,11 @@ class Environment(dict):
 
     @staticmethod
     def adjust_dataframe(df: pd.DataFrame):
+        """Fill up rows with empty strings.
+
+        :param df: a pandas dataframe
+        :type df: pd.DataFrame
+        """
         for col_name in Environment.get_column_names():
             if col_name not in df.columns:
                 df[col_name] = [''] * df.count(1).index.size
@@ -226,10 +293,11 @@ class Environment(dict):
         return uid, value
 
     def add_alias(self, alias: str, uid: str):
-        if alias:
-            if alias not in self.keys():
-                logger.debug(f"Registered alias={alias} => uid={uid}")
-                self.update({alias: uid})
-            else:
-                logger.warning(
-                    f"Redfined {alias}. Loss of existing {alias} => {self.get(alias)}")
+        if not alias:
+            return
+        if alias not in self.keys():
+            logger.debug(f"Registered alias={alias} => uid={uid}")
+            self.update({alias: uid})
+        else:
+            logger.warning(
+                f"Redfined {alias}. Loss of existing {alias} => {self.get(alias)}")

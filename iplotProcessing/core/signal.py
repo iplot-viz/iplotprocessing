@@ -1,7 +1,11 @@
-# Description: Coordinate and extend math capabilities to enable signal processing on multiple BufferObjects.
-# Author: Jaswant Sai Panchumarti
+""" 
+.. module:: signal
+.. synopsis:: Coordinate and extend math capabilities to enable signal processing on multiple BufferObjects.
+.. moduleauthor:: Jaswant Sai Panchumarti <jaswant.panchumarti@iter.org, jspanchu@gmail.com>
+"""
 
 from dataclasses import dataclass, field, fields
+from operator import attrgetter
 from scipy.interpolate import interp1d
 import numpy as np
 import typing
@@ -25,58 +29,44 @@ class Signal:
     """A processing object meant to provide data, unit handling for multi-dimensional
     signal processing methods.
 
-    The data_store is made of of primary and secondary data objects.
-    By default, simply use `data` member to get primary data object's buffer
+    :param data_source: name of the data source for this signal.
+    :param name: name of this signal.
+    :param expression: an expression for this signal.
 
-    Note on signal math
-    ===================
-    When a signal is combined with other signals in mathematical expression,
-    the default mixing mode for time alignment is an intersection
-    of the individual time arrays.
 
-    The data values are then interpolated onto this new common time base.
-    The default kind of interpolation is linear.
+    Create a signal
 
-    Time
-    ====
-    This is the time base for a signal, it could as well be another signal's data buffers.
+        >>> from iplotProcessing.core import Signal
+        >>> s = Signal(name='VAR-123-XYZ', data_source='codacuda')
+        >>> s.time
+        BufferObject([], dtype=float64)
+        >>> s.time_unit
+        ''
+        >>> s.data_primary
+        BufferObject([], dtype=float64)
+        >>> s.data_primary_unit
+        ''
+        >>> s.data_secondary
+        BufferObject([], dtype=float64)
+        >>> s.data_secondary_unit
+        ''
+        >>> s.rank
+        0
+        >>> s.is_expression
+        False
 
-    Primary data
-    ============
-    This is the data that is dependent on time. (could be independent)
+    .. note::
 
-    Secondary data
-    ============
-    This is the data that is dependent on time. (could be independent)
+       The data_store is made of of primary and secondary data objects.
+       By default, simply use `data` member to get primary data object's buffer.
 
-    Examples
-    ============
-    1. For 1D signals:
-        Ip = f(t)
-
-        data_primary would be 'Ip'
-        time would correspond to 't' variable
-
-    2. For 2D signals:
-        Te = f(t, r)
-
-        data_primary could be 'Te'
-        data_secondary could be 'r'
-        time would correspond to 't' variable.
-
-        Note:
-
-            time's buffer could as well be replaced by data_primary from the first example.
-            i.e, Te = f(Ip, r)
-
-    The name 'time' simply implies that it could be the basis for the data buffers.
-    It also helps in simpler naming of singal processing methods.
 
     """
-    data_source: str = ""
-    name: str = ""
-    expression: str = ""
-    var_names: list = field(default_factory=list)
+
+    data_source: str = '' #: name of the data source for this signal.
+    name: str = '' #: name of this signal.
+    expression: str = '${self}' #: an expression for this signal.
+    var_names: list = field(default_factory=list) #: a list of names of the constituent signals that make this signal. (read-only)
 
     def __post_init__(self) -> None:
         self._time = BufferObject()
@@ -88,6 +78,13 @@ class Signal:
         self._self_bkp = [BufferObject(), BufferObject(), BufferObject()]
 
     def __operator_dispatch__(self, operator, other):
+        """Ensure proper alignment of time bases prior to application of an operator.
+
+        :param operator: a valid python operator. (unused)
+        :type operator: type
+        :param other: another signal
+        :type other: Signal
+        """
         self._self_bkp = [self.time, self.data_primary, self.data_secondary]
         if isinstance(other, Signal):
             self._other_bkp = [other.time,
@@ -176,24 +173,87 @@ class Signal:
         yield f"self.is_expression: {self.is_expression}"
 
     @property
+    def rank(self) -> int:
+        """Compute the rank of this signal.
+
+        rank = ndims(primary_data) + ndims(secondary_data)
+
+        Example 
+            g = f(t) -> rank = 1
+            g = f(x, t) 
+            -> rank = 3 if x is 1-D
+
+        :return: rank
+        :rtype: int
+        """
+        if self._data_store[0].size and self._data_store[1].size:
+            return np.sum(list(map(attrgetter('ndim'), self._data_store)))
+        elif self._data_store[0].size:
+            return self._data_store[0].ndim
+        elif self._data_store[1].size:
+            return self._data_store[1].ndim
+        else:
+            return 0
+
+    @property
     def is_composite(self) -> bool:
+        """A signal is composite if it has two or more constituent signals.
+
+        :return: True if composite else False
+        :rtype: bool
+        """
         return len(self.var_names) > 1
 
     @property
     def is_expression(self) -> bool:
-        return parsers.Parser().set_expression(self.name).is_valid
+        """Determine if the name of this signal is an expression.
+
+        >>> print(Signal(name='${ml0004}').is_expression)
+        True
+        >>> print(Signal(name='CWS-SCSU-HR00:ML0004-LT-XI').is_expression)
+        False
+        >>> print(Signal(name='${CWS-SCSU-HR00:ML0004-LT-XI}').is_expression)
+        True
+        >>> print(Signal(name='${ml0004}-{ml0002}').is_expression)
+        False
+        >>> print(Signal(name='{ml0004}-{ml0002}').is_expression)
+        False
+        >>> print(Signal(name='${ml0004}-${ml0002}').is_expression)
+        True
+
+        :return: True if name is an expression else False
+        :rtype: bool
+        """
+        try:
+            return parsers.Parser().set_expression(self.name).is_valid
+        except InvalidExpression:
+            return False
 
     def set_expression(self, val: str):
+        """Set the expression for this signal.
+
+        .. note:: 
+            if val is an empty string or a white-space string, the expression is set to '${self}'
+
+        :param val: A valid expression string.
+        :type val: str
+        :raises InvalidExpression: when the expression is valid.
+        """
         if (isinstance(val, property)):
             val = "${self}"
         if not isinstance(val, str):
             raise InvalidExpression
-        elif not len(val):
+        if not len(val) or val.isspace():
             val = "${self}"
         self.expression = val
 
     @property
-    def time(self):
+    def time(self) -> BufferObject:
+        """The time buffer for this signal.
+
+        :return: a buffer object.
+        :rtype: BufferObject
+        """
         return self._time
 
     @time.setter
@@ -205,7 +265,12 @@ class Signal:
         self._time = self._time.ravel().view(BufferObject)  # time has to be a 1D array!
 
     @property
-    def data_primary(self):
+    def data_primary(self) -> BufferObject:
+        """The primary data for this signal.
+
+        :return: a buffer object.
+        :rtype: BufferObject
+        """
         return self._data_store[0]
 
     @data_primary.setter
@@ -216,7 +281,12 @@ class Signal:
             self._data_store[0] = BufferObject(input_arr=val)
 
     @property
-    def data_secondary(self):
+    def data_secondary(self) -> BufferObject:
+        """The secondary data for this signal.
+
+        :return: a buffer object.
+        :rtype: BufferObject
+        """
         return self._data_store[1]
 
     @data_secondary.setter
@@ -227,7 +297,12 @@ class Signal:
             self._data_store[1] = BufferObject(input_arr=val)
 
     @property
-    def time_unit(self):
+    def time_unit(self) -> str:
+        """The time unit for this signal.
+
+        :return: a string (ex: 'ns', 's', 'D', 'ms') See :mod:`iplotProcessing.common.units`
+        :rtype: str
+        """
         return self._time.unit
 
     @time_unit.setter
@@ -235,7 +310,12 @@ class Signal:
         self._time.unit = val
 
     @property
-    def data_unit(self):
+    def data_unit(self) -> str:
+        """The primary data unit for this signal.
+
+        :return: a string (ex: 'C', 'kV', 'J', 'A')
+        :rtype: str
+        """
         return self._data_store[0].unit
 
     @data_unit.setter
@@ -243,7 +323,12 @@ class Signal:
         self._data_store[0].unit = val
 
     @property
-    def data_primary_unit(self):
+    def data_primary_unit(self) -> str:
+        """The primary data unit for this signal.
+
+        :return: a string (ex: 'C', 'kV', 'J', 'A')
+        :rtype: str
+        """
         return self._data_store[0].unit
 
     @data_primary_unit.setter
@@ -251,7 +336,12 @@ class Signal:
         self._data_store[0].unit = val
 
     @property
-    def data_secondary_unit(self):
+    def data_secondary_unit(self) -> str:
+        """The secondary data unit for this signal.
+
+        :return: a string (ex: 'C', 'kV', 'J', 'A')
+        :rtype: str
+        """
         return self._data_store[1].unit
 
     @data_secondary_unit.setter

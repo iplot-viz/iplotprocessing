@@ -1,6 +1,8 @@
-# Description: Provide methods to load signal metadata from a .csv file
-#              for data processing
-# Author: Jaswant Sai Panchumarti
+""" 
+.. module:: context
+.. synopsis:: Provide methods to initialize signal metadata from a .csv file for data processing.
+.. moduleauthor:: Jaswant Sai Panchumarti <jaswant.panchumarti@iter.org, jspanchu@gmail.com>
+"""
 
 from collections import namedtuple
 import typing
@@ -27,6 +29,11 @@ ContextT = typing.TypeVar('ContextT', bound="Context")
 
 
 class Context:
+    """
+    Create a processing context.
+
+    """
+
     def __init__(self) -> None:
         self._env = Environment()
 
@@ -36,6 +43,11 @@ class Context:
 
     @property
     def env(self) -> Environment:
+        """Get the environment attached to this context.
+
+        :return: an environment
+        :rtype: Environment
+        """
         return self._env
 
     @env.setter
@@ -48,16 +60,35 @@ class Context:
                    assort_signals: typing.Callable = None,
                    default_signal_params: dict = {},
                    **kwargs) -> ContextT:
+        """Import a csv file into the environment. A signal is created for each row.
 
+        :param fname: file name
+        :type fname: str
+        :param signal_class: your implementation of :class:`iplotProcesing.core.Signal`, defaults to :class:`iplotProcesing.core.Signal`
+        :type signal_class: type, optional
+        :param assort_signals: your function to deal with the initialized signals, defaults to None
+        :type assort_signals: typing.Callable, optional
+        :param default_signal_params: default parameters that shall be used to construct a signal, defaults to {}
+        :type default_signal_params: dict, optional
+        :return: this context.
+        :rtype: Context
+        """
         contents = pd.read_csv(fname, **kwargs)
         return self.import_dataframe(contents, signal_class,
                                      assort_signals, **default_signal_params)
 
     @staticmethod
     def parse_series(inp: pd.Series) -> typing.Iterator[pd.Series]:
+        """Given a row (pd.Series) of values, parse it according to the environment's blueprint definition. Fill in default values/overrides as needed.
 
+        :param inp: a row
+        :type inp: pd.Series
+        :return: parsed row.
+        :rtype: typing.Iterator[pd.Series]
+        :yield: the parsed row
+        :rtype: Iterator[typing.Iterator[pd.Series]]
+        """
         out = dict()
-        override_global = False
 
         for k, v in Environment.blueprint.items():
             type_func = v.get('type')
@@ -83,11 +114,21 @@ class Context:
                          table: pd.DataFrame,
                          signal_class: type = Signal,
                          assort_signals: typing.Callable = None,
-                         **default_params) -> ContextT:
+                         **default_signal_params) -> ContextT:
+        """Import a pandas dataframe into the environment. A signal is created for each row.
 
-        for col_name in Environment.get_column_names():
-            if col_name not in table.columns:
-                table[col_name] = [''] * table.count(1).index.size
+        :param table: file name
+        :type table: str
+        :param signal_class: your implementation of :class:`iplotProcesing.core.Signal`, defaults to :class:`iplotProcesing.core.Signal`
+        :type signal_class: type, optional
+        :param assort_signals: your function to deal with the initialized signals, defaults to None
+        :type assort_signals: typing.Callable, optional
+        :param default_signal_params: default parameters that shall be used to construct a signal, defaults to {}
+        :type default_signal_params: dict, optional
+        :return: this context.
+        :rtype: Context
+        """
+        self._env.adjust_dataframe(table)
 
         pd.set_option('display.max_columns', None)
         pd.set_option('display.expand_frame_repr', False)
@@ -96,7 +137,7 @@ class Context:
         for key in Environment.get_keys_with_override():
             v = Environment.blueprint.get(key)
             code_name = v.get('code_name')
-            v.update({'default': default_params.get(code_name)})
+            v.update({'default': default_signal_params.get(code_name)})
 
         logger.info("Registering aliases")
         for idx, row in table.iterrows():
@@ -142,6 +183,11 @@ class Context:
         return self
 
     def build(self) -> ContextT:
+        """Build the signals that have been added to the environment. The build process replaces the signal names with its respective UID.
+
+        :return: this context
+        :rtype: Context
+        """
 
         logger.info("Building context map")
 
@@ -175,6 +221,17 @@ class Context:
                         unbound_signal_handler: typing.Callable,
                         fetch_on_demand: bool = True,
                         **params) -> ContextT:
+        """Evaluate the given signal with the parameters specified.
+
+        :param sig: a :class:`iplotProcessing.core.Signal` instance.
+        :type sig: Signal
+        :param unbound_signal_handler: your custom handler for unbound signals.
+        :type unbound_signal_handler: typing.Callable
+        :param fetch_on_demand: indicate whether data access must be initiated if needed, defaults to True
+        :type fetch_on_demand: bool, optional
+        :return: this context
+        :rtype: Context
+        """
         if not isinstance(sig, Signal):
             return self
 
@@ -235,26 +292,39 @@ class Context:
 
     def evaluate_expr(self,
                       expr: str,
-                      self_signal_hash: str = "",
+                      self_signal_uid: str = "",
                       fetch_on_demand=True,
                       unbound_signal_handler: typing.Callable = None,
                       **params):
+        """Evaluate the given expression with the parameters specified.
+
+        :param expr: a :class:`iplotProcessing.core.Signal` instance.
+        :type expr: str
+        :param self_signal_uid: a UID corresponding to the signal denoted by ${self} in the expression.
+        :type self_signal_uid: str
+        :param fetch_on_demand: indicate whether data access must be initiated if needed, defaults to True
+        :type fetch_on_demand: bool, optional
+        :param unbound_signal_handler: your custom handler for unbound signals.
+        :type unbound_signal_handler: typing.Callable
+        :return: the result of the expression
+        :rtype: BufferObject
+        """
 
         logger.info(
-            f"Evaluating '{expr}', self_signal_hash='{self_signal_hash}', fetch_on_demand={fetch_on_demand}")
+            f"Evaluating '{expr}', self_signal_uid='{self_signal_uid}', fetch_on_demand={fetch_on_demand}")
 
         local_env = dict(self._env)
         # Update value for the keyword 'self',
         # Ex: ${self}.time, ${self}.data, here 'self' is a signal with a hash supposedly in env.
-        if isinstance(self_signal_hash, str) and len(self_signal_hash):
-            local_env.update({'self': self.env.get(self_signal_hash)})
+        if isinstance(self_signal_uid, str) and len(self_signal_uid):
+            local_env.update({'self': self.env.get(self_signal_uid)})
         else:
             local_env.update({'self': None})
 
         # Check for undesired use of 'self' in expression.
         if not isinstance(local_env.get('self'), Signal) and expr.count('self'):
             logger.warning(
-                f"The expression:'{expr}' uses 'self' but self_signal_hash:'{self_signal_hash}' is invalid.")
+                f"The expression:'{expr}' uses 'self' but self_signal_uid:'{self_signal_uid}' is invalid.")
             return BufferObject()
 
         # Parse it
@@ -272,8 +342,8 @@ class Context:
             sig = None
 
             if var_name == 'self':
-                uid = self_signal_hash
-                sig = self.env[self_signal_hash]
+                uid = self_signal_uid
+                sig = self.env[self_signal_uid]
             else:
                 try:
                     value = var_name

@@ -1,5 +1,5 @@
 # Data Processing Library
-Data processing for IMAS, CODAC data. See [requirements](https://confluence.iter.org/display/PMA/Data+Processing+Requirements)
+Data processing for IMAS, CODAC data. See [requirements](https://confluence.iter.org/display/PMA/Requirements+for+visualisation+components)
 
 # Requirements
 See [requirements.txt](https://git.iter.org/projects/VIS/repos/iplotprocessing/browse/requirements.txt)
