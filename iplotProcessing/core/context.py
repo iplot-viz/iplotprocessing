@@ -91,14 +91,14 @@ class Context:
 
         pd.set_option('display.max_columns', None)
         pd.set_option('display.expand_frame_repr', False)
-        logger.info(f"\n{table}")
+        logger.debug(f"\n{table}")
 
         for key in Environment.get_keys_with_override():
             v = Environment.blueprint.get(key)
             code_name = v.get('code_name')
             v.update({'default': default_params.get(code_name)})
 
-        logger.info("Registering aliases")
+        logger.debug("Registering aliases")
         for idx, row in table.iterrows():
             logger.debug(f"Row: {idx}")
 
@@ -109,7 +109,7 @@ class Context:
                 alias = parsed_row['Alias']
                 self.env.add_alias(alias, uid)
 
-        logger.info("Registering signals")
+        logger.debug("Registering signals")
         for idx, row in table.iterrows():
             logger.debug(f"Row: {idx}")
             signals = []
@@ -150,7 +150,7 @@ class Context:
 
     def build(self) -> ContextT:
 
-        logger.info("Building context map")
+        logger.debug("Building context map")
 
         for k, v in self.env.items():
             if not isinstance(v, Signal):
@@ -186,7 +186,7 @@ class Context:
         if not isinstance(sig, Signal):
             return self
 
-        logger.info(f"Evaluating signal: {sig}")
+        logger.debug(f"Evaluating signal: {sig}")
         uid = Environment.construct_uid_from_signal(sig)
 
         if uid not in self.env.keys() and callable(unbound_signal_handler):
@@ -250,7 +250,7 @@ class Context:
                       unbound_signal_handler: typing.Callable = None,
                       **params):
 
-        logger.info(
+        logger.debug(
             f"Evaluating '{expr}', self_signal_hash='{self_signal_hash}', fetch_on_demand={fetch_on_demand}")
 
         local_env = dict(self._env)

@@ -15,7 +15,7 @@ from iplotProcessing.tools import parsers
 
 from iplotLogging import setupLogger as sl
 
-logger = sl.get_logger(__name__, "DEBUG")
+logger = sl.get_logger(__name__, "INFO")
 
 SignalT = typing.TypeVar("SignalT", bound="Signal")
 
