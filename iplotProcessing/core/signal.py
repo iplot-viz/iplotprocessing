@@ -394,20 +394,14 @@ def __intersection__(signals: typing.List[Signal], kind=InterpolationKind.LINEAR
 
 def __union__(signals: typing.List[Signal], kind=InterpolationKind.LINEAR):
 
-    num_points = 0
-    tmin = np.iinfo(np.int64).max
-    tmax = 0
     time_dtype = np.int64
-
+    tvec = []
     for sig in signals:
         try:
-            tmin = min(min(sig.time), tmin)
-            tmax = max(max(sig.time), tmax)
-            num_points += sig.time.size
+            tvec.extend(sig.time.tolist())
             if 'float' in str(sig.time.dtype):
                 time_dtype = np.float64
         except AttributeError:
             continue
-
-    tvec = np.linspace(tmin, tmax, num_points, dtype=time_dtype)
+    tvec = np.unique((np.array(tvec, dtype=time_dtype)))
     return tvec

@@ -30,7 +30,7 @@ class MinMaxTimeAlign(unittest.TestCase):
     def test_align_1(self):
         time_align(self.signals_set_1, mode=TimeAlignmentMode.UNION,
                    kind=InterpolationKind.LINEAR)
-        valid_values = [0,  6, 12, 18, 25, 31, 37, 43, 50]
+        valid_values = [0, 10, 20, 30, 40, 45, 50]
         for sig in self.signals_set_1:
             for v1, v2 in zip(valid_values, sig.time):
                 self.assertEqual(v1, v2)
@@ -38,7 +38,7 @@ class MinMaxTimeAlign(unittest.TestCase):
     def test_align_2(self):
         time_align(self.signals_set_2, mode=TimeAlignmentMode.UNION,
                    kind=InterpolationKind.LINEAR)
-        valid_values = [0, 0, 1, 2, 2, 3, 4, 4, 5, 6]
+        valid_values = [0, 1, 2, 3, 4, 5, 6]
         for sig in self.signals_set_2:
             for v1, v2 in zip(valid_values, sig.time):
                 self.assertEqual(v1, v2)
