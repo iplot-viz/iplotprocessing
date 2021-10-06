@@ -120,6 +120,13 @@ class Context:
                     Environment.construct_params_from_series(parsed_row))
                 _, signal = self.env.add_signal(
                     signal_class, **signal_params)
+                
+                if parsed_row['Alias'] and hasattr(signal, 'title'):
+                    old_title = signal.title    
+                    signal.title = str(parsed_row['Alias']) or None
+                    if signal.title is not None and signal.title.isspace():
+                        signal.title = old_title
+
                 signals.append(signal)
 
             if not len(signal_params):
