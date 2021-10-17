@@ -1,6 +1,0 @@
-DS,Variable,Stack,Row span,Col span,Envelope,Alias,Samples,PulseNumber,StartTime,EndTime,x,y,z,Plot type
-emulated,(${ml0004}+${CWS-SCSU-HR00:ML0002-LT-XI})/2,1.1,,,0,myavg,100,,2021-08-09T09:31:19,2021-09-16T09:31:19,,,,
-emulated,(${CWS-SCSU-HR00:ML0004-LT-XI}+${ml0002}),1.2,,,,mysum,100,,,,,,,
-,${mysum}-${myavg},1.3,,,,,1000,,2021-08-09T09:31:19,2021-09-16T09:31:19,,,,
-emulated,CWS-SCSU-HR00:ML0004-LT-XI,,,,,ml0004,,,,,,,
-emulated,CWS-SCSU-HR00:ML0002-LT-XI,,,,,ml0002,,,,,,,
