@@ -43,10 +43,11 @@ class Parser:
     def supported_members(self) -> dict:
         return self._supported_members
 
-    def inject(self, members: dict):
+    def inject(self, members: dict) -> ParserT:
         self._supported_members.update(members)
         for k in members.keys():
             self._supported_member_names.add(k)
+        return self
 
     def replace_var(self, expr: str) -> str:
         new_expr = expr

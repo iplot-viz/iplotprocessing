@@ -2,14 +2,14 @@
 # Author: Jaswant Sai Panchumarti
 
 import unittest
-from iplotProcessing.example.emulatedDataAccess import SignalAdapterStub
+from iplotProcessing.core import Signal
 import numpy as np
 
 
 class SignalBasicTesting(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.test_signal = SignalAdapterStub()
+        self.test_signal = Signal()
 
     def test_primary_dobject_indirect(self):
         self.test_signal.data_primary = [0, 1, 2]

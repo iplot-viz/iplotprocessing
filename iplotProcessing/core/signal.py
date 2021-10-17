@@ -1,17 +1,14 @@
 # Description: Coordinate and extend math capabilities to enable signal processing on multiple BufferObjects.
 # Author: Jaswant Sai Panchumarti
 
-from dataclasses import dataclass, field, fields
 from scipy.interpolate import interp1d
 import numpy as np
 import typing
 
-from iplotProcessing.common.errors import InvalidExpression
 from iplotProcessing.common.interpolation import InterpolationKind
 from iplotProcessing.common.time_mixing import TimeAlignmentMode
 from iplotProcessing.common.units import DATE_TIME_PRECISE
 from iplotProcessing.core.bobject import BufferObject
-from iplotProcessing.tools import parsers
 
 from iplotLogging import setupLogger as sl
 
@@ -19,11 +16,8 @@ logger = sl.get_logger(__name__, "INFO")
 
 SignalT = typing.TypeVar("SignalT", bound="Signal")
 
-
-@dataclass
 class Signal:
-    """A processing object meant to provide data, unit handling for multi-dimensional
-    signal processing methods.
+    """Provides data, unit handling for multi-dimensional signal processing methods.
 
     The data_store is made of of primary and secondary data objects.
     By default, simply use `data` member to get primary data object's buffer
@@ -73,12 +67,8 @@ class Signal:
     It also helps in simpler naming of singal processing methods.
 
     """
-    data_source: str = ""
-    name: str = ""
-    expression: str = ""
-    var_names: list = field(default_factory=list)
 
-    def __post_init__(self) -> None:
+    def __init__(self):
         self._time = BufferObject()
         self._data_store = [BufferObject(), BufferObject()]
         self._mixing_mode = TimeAlignmentMode.INTERSECTION
@@ -89,7 +79,7 @@ class Signal:
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         # Apply to data_store.
-        result_signals = [None] * ufunc.nout
+        result_signals = [type(self)()] * ufunc.nout
 
         for idx, buffer in enumerate(self._data_store):
             args = ((i._data_store[idx] if isinstance(i, Signal) else i)
@@ -120,19 +110,14 @@ class Signal:
             iout = 0
             for ds, output in zip(results, outputs):
                 if output is None:
-                    result_signals[iout] = type(self)()
-                    self.copy_buffers_to(result_signals[iout])
+                    result_signals[iout].time = self.time # implicit
                     if np.isscalar(ds) or len(ds) == 1:
-                        result_signals[iout]._data_store[idx] = BufferObject(
-                            [ds] * len(self._time))
-                    else:
-                        result_signals[iout]._data_store[idx] = ds
+                        ds = BufferObject([ds] * len(self._time))
+                    result_signals[iout]._data_store[idx] = ds
                 else:
                     if np.isscalar(ds) or len(ds) == 1:
-                        output._data_store[idx] = BufferObject(
-                            [ds] * len(output._time))
-                    else:
-                        output._data_store[idx] = ds
+                        ds = BufferObject([ds] * len(output._time))
+                    output._data_store[idx] = ds
                     result_signals[iout] = output
                 iout += 1
 
@@ -217,32 +202,6 @@ class Signal:
         other._data_store[0] = self._data_store[0]
         other._data_store[1] = self._data_store[1]
 
-    def log_string(self) -> None:
-        yield f"Signal instance: {id(self)}"
-
-        for field in fields(self):
-            yield f"self.{field.name}: {getattr(self, field.name)}"
-        yield f"self.is_composite: {self.is_composite}"
-        yield f"len(self.var_names): {len(self.var_names)}"
-        yield f"self.is_expression: {self.is_expression}"
-
-    @property
-    def is_composite(self) -> bool:
-        return len(self.var_names) > 1
-
-    @property
-    def is_expression(self) -> bool:
-        return parsers.Parser().set_expression(self.name).is_valid
-
-    def set_expression(self, val: str):
-        if (isinstance(val, property)):
-            val = "${self}"
-        if not isinstance(val, str):
-            raise InvalidExpression
-        elif not len(val):
-            val = "${self}"
-        self.expression = val
-
     @property
     def time(self):
         return self._time
@@ -254,6 +213,14 @@ class Signal:
         else:
             self._time = BufferObject(input_arr=val)
         self._time = self._time.ravel().view(BufferObject)  # time has to be a 1D array!
+
+    @property
+    def data(self):
+        return self.data_primary
+
+    @data.setter
+    def data(self, val):
+        self.data_primary = val
 
     @property
     def data_primary(self):
@@ -338,11 +305,11 @@ def __align__(signals: typing.List[Signal], mode=TimeAlignmentMode.INTERSECTION,
 
             sig.time = BufferObject(input_arr=common_time, unit=time_unit)
             if f_primary:
-                dp_unit = sig.data_primary_unit
+                dp_unit = sig.data_primary.unit
                 sig.data_primary = BufferObject(
                     input_arr=f_primary(sig.time), unit=dp_unit)
             if f_secondary:
-                ds_unit = sig.data_secondary_unit
+                ds_unit = sig.data_secondary.unit
                 sig.data_secondary = BufferObject(
                     input_arr=f_secondary(sig.time), unit=ds_unit)
         except AttributeError:
@@ -374,7 +341,7 @@ def __get_coarsest_time_unit__(signals: typing.List[Signal]) -> str:
 def __intersection__(signals: typing.List[Signal], kind=InterpolationKind.LINEAR):
 
     num_points = 0
-    tmin = 0
+    tmin = np.iinfo(np.int64).min
     tmax = np.iinfo(np.int64).max
     time_dtype = np.int64
 
