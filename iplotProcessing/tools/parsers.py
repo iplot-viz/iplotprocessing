@@ -33,6 +33,7 @@ class Parser:
         self._supported_members = dict()
         self.inject(self.get_member_list(numpy))
         self.inject(self.get_member_list(numpy.ndarray))
+        self.inject({"numpy": numpy})
         self.inject({"np": numpy})
         self.inject({"__builtins__": '{}'})
         self.locals = {}
