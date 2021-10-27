@@ -53,7 +53,13 @@ class BufferObject(np.ndarray):
         if method == 'at':
             return
         if ufunc.nout == 1:
-            results = (results,)
+            results = [results]
+
+        # Cast a scalar or 0D array to a shape (1,) buffer object.
+        for i in range(len(results)):
+            if np.isscalar(results[i]) or (isinstance(results[i], BufferObject) and results[i].ndim == 0):
+                results[i] = BufferObject([results[i]])
+
         results = tuple((self._copy_attrs_to(result) if output is None else output)
                         for result, output in zip(results, outputs))
         

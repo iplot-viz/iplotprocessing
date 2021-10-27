@@ -111,12 +111,16 @@ class Signal:
             for ds, output in zip(results, outputs):
                 if output is None:
                     result_signals[iout].time = self.time # implicit
-                    if np.isscalar(ds) or len(ds) == 1:
-                        ds = BufferObject([ds] * len(self._time))
+                    if np.isscalar(ds):
+                        ds = BufferObject([ds] * len(self._time), self._data_store[idx].unit)
+                    elif len(ds) == 1:
+                        ds = BufferObject([ds[0]] * len(self._time), self._data_store[idx].unit)
                     result_signals[iout]._data_store[idx] = ds
                 else:
-                    if np.isscalar(ds) or len(ds) == 1:
-                        ds = BufferObject([ds] * len(output._time))
+                    if np.isscalar(ds):
+                        ds = BufferObject([ds] * len(output._time), output._data_store[idx].unit)
+                    elif len(ds) == 1:
+                        ds = BufferObject([ds[0]] * len(output._time), output._data_store[idx].unit)
                     output._data_store[idx] = ds
                     result_signals[iout] = output
                 iout += 1
