@@ -64,40 +64,43 @@ class BufferObject(np.ndarray):
                         for result, output in zip(results, outputs))
         
         for result in results:
-            if ufunc.__name__ in ['true_divide', 'floor_divide']:
-                if isinstance(result, BufferObject) and self_max_val is not None:
-                    if result.unit.lower() in ['ns', 'nanoseconds']:
-                        if 1e9 - 1 <= self_max_val // max(result) <=  1e9:
-                            result.unit = 'Seconds'
-                        elif 1e6 - 1 <= self_max_val // max(result) <=  1e6:
-                            result.unit = 'ms'
-                        elif 1e3 - 1 <= self_max_val // max(result) <=  1e3:
-                            result.unit = 'us'
-                    if result.unit.lower() in ['us', 'microseconds']:
-                        if 1e6 - 1 <= self_max_val // max(result) <= 1e6:
-                            result.unit = 'Seconds'
-                        elif 1e3 - 1 <= self_max_val // max(result) <= 1e3:
-                            result.unit = 'ms'
-                    if result.unit.lower() in ['ms', 'milliseconds']:
-                        if 1e3 - 1 <= self_max_val // max(result) <= 1e3:
-                            result.unit = 'Seconds'
-            elif ufunc.__name__ in ['multiply']:
-                if isinstance(result, BufferObject) and self_max_val is not None:
-                    if result.unit.lower() in ['us', 'microseconds']:
-                        if max(result) // self_max_val == 1e3:
-                            result.unit = 'ns'
-                    if result.unit.lower() in ['ms', 'milliseconds']:
-                        if max(result) // self_max_val == 1e3:
-                            result.unit = 'us'
-                        elif max(result) // self_max_val == 1e6:
-                            result.unit = 'ns'
-                    if result.unit.lower() in ['s', 'seconds']:
-                        if max(result) // self_max_val == 1e3:
-                            result.unit = 'ms'
-                        elif max(result) // self_max_val == 1e6:
-                            result.unit = 'us'
-                        elif max(result) // self_max_val == 1e9:
-                            result.unit = 'ns'
+            # [IDV-280](https://jira.iter.org/browse/IDV-280). Clear unit attribute when processing occurs.
+            if isinstance(result, BufferObject):
+                result.unit = ''
+            # if ufunc.__name__ in ['true_divide', 'floor_divide']:
+            #     if isinstance(result, BufferObject) and self_max_val is not None:
+            #         if result.unit.lower() in ['ns', 'nanoseconds']:
+            #             if 1e9 - 1 <= self_max_val // max(result) <=  1e9:
+            #                 result.unit = 'Seconds'
+            #             elif 1e6 - 1 <= self_max_val // max(result) <=  1e6:
+            #                 result.unit = 'ms'
+            #             elif 1e3 - 1 <= self_max_val // max(result) <=  1e3:
+            #                 result.unit = 'us'
+            #         if result.unit.lower() in ['us', 'microseconds']:
+            #             if 1e6 - 1 <= self_max_val // max(result) <= 1e6:
+            #                 result.unit = 'Seconds'
+            #             elif 1e3 - 1 <= self_max_val // max(result) <= 1e3:
+            #                 result.unit = 'ms'
+            #         if result.unit.lower() in ['ms', 'milliseconds']:
+            #             if 1e3 - 1 <= self_max_val // max(result) <= 1e3:
+            #                 result.unit = 'Seconds'
+            # elif ufunc.__name__ in ['multiply']:
+            #     if isinstance(result, BufferObject) and self_max_val is not None:
+            #         if result.unit.lower() in ['us', 'microseconds']:
+            #             if max(result) // self_max_val == 1e3:
+            #                 result.unit = 'ns'
+            #         if result.unit.lower() in ['ms', 'milliseconds']:
+            #             if max(result) // self_max_val == 1e3:
+            #                 result.unit = 'us'
+            #             elif max(result) // self_max_val == 1e6:
+            #                 result.unit = 'ns'
+            #         if result.unit.lower() in ['s', 'seconds']:
+            #             if max(result) // self_max_val == 1e3:
+            #                 result.unit = 'ms'
+            #             elif max(result) // self_max_val == 1e6:
+            #                 result.unit = 'us'
+            #             elif max(result) // self_max_val == 1e9:
+            #                 result.unit = 'ns'
         return results[0] if len(results) == 1 else results
 
     def _copy_attrs_to(self, target):
