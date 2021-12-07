@@ -1,4 +1,4 @@
-from .errors import InvalidExpression, InvalidSignalName, InvalidVariable, UnboundSignal
+from .errors import InvalidExpression, InvalidNDims, InvalidVariable
 from .units import DATE_TIME, PRECISE_TIME, DATE_TIME_PRECISE, DATE, TIME
 __all__ = ["DATE_TIME", "PRECISE_TIME", "DATE_TIME_PRECISE", "DATE", "TIME",
-           "InvalidExpression", "InvalidSignalName", "InvalidVariable", "UnboundSignal"]
+           "InvalidExpression", "InvalidNDims", "InvalidVariable"]

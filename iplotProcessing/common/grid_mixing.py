@@ -1,6 +1,6 @@
-# Description: Define time alignment modes.
+# Description: Define grid alignment modes.
 # Author: Jaswant Sai Panchumarti
 
-class TimeAlignmentMode:
+class GridAlignmentMode:
     INTERSECTION = "intersection"
     UNION = "union"

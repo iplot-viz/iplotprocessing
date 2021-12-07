@@ -1,4 +1,4 @@
-# Description: Tests BufferObject
+# Description: Tests BufferObject with 2D arrays
 # Author: Jaswant Sai Panchumarti
 
 import unittest
@@ -6,7 +6,7 @@ from iplotProcessing.core.bobject import BufferObject
 import numpy as np
 
 
-class BObjectTesting(unittest.TestCase):
+class TestBObject2D(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.test_object = BufferObject([[1, 2], [3, 4], [5, 6]])

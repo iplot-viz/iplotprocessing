@@ -6,7 +6,7 @@ from iplotProcessing.core.bobject import BufferObject
 import numpy as np
 
 
-class BObjectTesting(unittest.TestCase):
+class TestBObject0D(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.test_object = BufferObject(1)
