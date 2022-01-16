@@ -101,6 +101,12 @@ class Signal:
     def __sub__(self, other):
         return np.subtract(self, other)
 
+    def __mul__(self, other):
+        return np.multiply(self, other)
+
+    def __neg__(self):
+        return self.__mul__(-1)
+
     def __multiply__(self, other):
         return np.multiply(self, other)
 
