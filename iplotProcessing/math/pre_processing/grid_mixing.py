@@ -32,7 +32,7 @@ def _get_common_num_dims(arrays: typing.List[np.ndarray]) -> int:
 
     return ndim
 
-def align(signals: typing.List[Signal], mode=GridAlignmentMode.INTERSECTION, kind=InterpolationKind.LINEAR):
+def align(signals: typing.List[Signal], mode=GridAlignmentMode.UNION, kind=InterpolationKind.PREVIOUS):
 
     # all signals must have same alias_map.
     if not _check_alias_map_equal(signals):
