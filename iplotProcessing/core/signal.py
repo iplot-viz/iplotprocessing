@@ -1,12 +1,12 @@
 # Description: Coordinate and extend math capabilities to enable signal processing on multiple BufferObjects.
 # Author: Jaswant Sai Panchumarti
 
-import numpy as np
 import typing
 
 from iplotProcessing.core.bobject import BufferObject
-
+from iplotProcessing.math.expressions import augmented, binary, reflected, unary
 from iplotLogging import setupLogger as sl
+
 
 logger = sl.get_logger(__name__, "INFO")
 
@@ -95,26 +95,53 @@ class Signal:
             rank += self._data[i].ndim
         return rank
 
-    def __add__(self, other):
-        return np.add(self, other)
+    __add__ = binary.add
+    __sub__ = binary.sub
+    __mul__ = binary.mul
+    __matmul__ = binary.matmul
+    __truediv__ = binary.truediv
+    __floordiv__ = binary.floordiv
+    __mod__ = binary.mod
+    __divmod__ = binary.divmod
+    __pow__ = binary.pow
+    __lshift__ = binary.lshift
+    __rshift__ = binary.rshift
+    __and__ = binary.logical_and
+    __xor__ = binary.logical_xor
+    __or__ = binary.logical_or
 
-    def __sub__(self, other):
-        return np.subtract(self, other)
+    __radd__ = reflected.add
+    __rsub__ = reflected.sub
+    __rmul__ = reflected.mul
+    __rmatmul__ = reflected.matmul
+    __rtruediv__ = reflected.truediv
+    __rfloordiv__ = reflected.floordiv
+    __rmod__ = reflected.mod
+    __rdivmod__ = reflected.divmod
+    __rpow__ = reflected.pow
+    __rlshift__ = reflected.lshift
+    __rrshift__ = reflected.rshift
+    __rand__ = reflected.logical_and
+    __rxor__ = reflected.logical_xor
+    __ror__ = reflected.logical_or
 
-    def __mul__(self, other):
-        return np.multiply(self, other)
+    __iadd__ = augmented.add
+    __isub__ = augmented.sub
+    __imul__ = augmented.mul
+    __imatmul__ = augmented.matmul
+    __itruediv__ = augmented.truediv
+    __ifloordiv__ = augmented.floordiv
+    __imod__ = augmented.mod
+    __ipow__ = augmented.pow
+    __ilshift__ = augmented.lshift
+    __irshift__ = augmented.rshift
+    __iand__ = augmented.logical_and
+    __ixor__ = augmented.logical_xor
+    __ior__ = augmented.logical_or
 
-    def __neg__(self):
-        return self.__mul__(-1)
-
-    def __multiply__(self, other):
-        return np.multiply(self, other)
-
-    def __truediv__(self, other):
-        return np.true_divide(self, other)
-
-    def __floordiv__(self, other):
-        return np.floor_divide(self, other)
+    __neg__ = unary.neg
+    __abs__ = unary.abs
+    __invert__ = unary.invert
 
     def __getattr__(self, name: str):
         if name not in self.__dict__['_alias_map']:
@@ -127,7 +154,7 @@ class Signal:
             return self._data[idx]
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        result_signals = [type(self)()] * ufunc.nout
+        result_signals = [type(self)() for _ in range(ufunc.nout)]
         indep_accessors = self.independent_accessors
         for sig in result_signals:
             sig._alias_map = dict(self._alias_map)
