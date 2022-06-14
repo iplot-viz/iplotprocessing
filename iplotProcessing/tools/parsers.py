@@ -7,7 +7,7 @@ from inspect import getmembers
 import typing
 import numpy
 import re
-
+import scipy.signal
 from iplotProcessing.common import InvalidExpression, InvalidVariable, DATE_TIME, PRECISE_TIME
 import iplotLogging.setupLogger as ls
 
@@ -32,9 +32,12 @@ class Parser:
         self._supported_member_names = set()
         self._supported_members = dict()
         self.inject(self.get_member_list(numpy))
+        self.inject(self.get_member_list(numpy.add))
         self.inject(self.get_member_list(numpy.ndarray))
+        self.inject(self.get_member_list(scipy.signal))
         self.inject({"numpy": numpy})
         self.inject({"np": numpy})
+        self.inject({"sp.signal": scipy.signal})
         self.inject({"__builtins__": '{}'})
         self.locals = {}
         self.var_map = {}
