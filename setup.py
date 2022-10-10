@@ -2,21 +2,23 @@
 # Author: Jaswant Sai Panchumarti
 
 import setuptools
-from iplotProcessing._version import __version__
+import versioneer
+
+# from iplotProcessing._version import __version__
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="iplotProcessing",
-    setup_requires=[
-        "setuptools-git-versioning"
-    ],
-    version_config={
-        "version_callback": __version__,
-        "template": "{tag}",
-        "dirty_template": "{tag}.dev{ccount}.{sha}",
-    },
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
+    setup_requires=["setuptools-git-versioning"],
+    # version_config={
+    #     "version_callback": __version__,
+    #     "template": "{tag}",
+    #     "dirty_template": "{tag}.dev{ccount}.{sha}",
+    # },
     author="Panchumarti Jaswant EXT",
     author_email="jaswant.panchumarti@iter.org",
     description="Data processing for applications using IDSs or CBS",
@@ -33,16 +35,12 @@ setuptools.setup(
     package_dir={"": "."},
     packages=setuptools.find_packages(where="."),
     python_requires=">=3.8",
-    install_requires=[
-        "iplotLogging >= 0.0.0",
-        "numpy >= 1.19.0",
-        "scipy >= 1.5.4"
-    ],
+    install_requires=["iplotLogging >= 0.0.0", "numpy >= 1.19.0", "scipy >= 1.5.4"],
     entry_points={
-        'console_scripts': ['iprocapp = iplotProcessing.example.__main__:main']
+        "console_scripts": ["iprocapp = iplotProcessing.example.__main__:main"]
     },
-    package_data = {
+    package_data={
         "iplotProcessing.example": ["example_inp.csv"],
-        "iplotProcessing.core": ["blueprint.json"]
-    }
+        "iplotProcessing.core": ["blueprint.json"],
+    },
 )

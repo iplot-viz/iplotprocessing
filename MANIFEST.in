@@ -1,0 +1,4 @@
+graft iplotProcessing
+recursive-exclude * *.py[co]
+include versioneer.py
+include iplotProcessing/_version.py
