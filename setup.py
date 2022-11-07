@@ -35,7 +35,7 @@ setuptools.setup(
     package_dir={"": "."},
     packages=setuptools.find_packages(where="."),
     python_requires=">=3.8",
-    install_requires=["iplotLogging >= 0.1.0*", "numpy >= 1.19.0", "scipy >= 1.5.4"],
+    install_requires=["iplotLogging", "numpy >= 1.19.0", "scipy >= 1.5.4"],
     entry_points={
         "console_scripts": ["iprocapp = iplotProcessing.example.__main__:main"]
     },
