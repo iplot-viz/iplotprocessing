@@ -144,7 +144,7 @@ class Signal:
     __invert__ = unary.invert
 
     def __getattr__(self, name: str):
-        if name not in self.__dict__['_alias_map']:
+        if '_alias_map' not in self.__dict__ or name not in self.__dict__['_alias_map']:
             try:
                 return self.__dict__[name]
             except KeyError:
