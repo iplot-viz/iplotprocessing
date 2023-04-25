@@ -52,3 +52,6 @@ case $toolchain in
 esac
 
 try module list -t 2>&1
+
+export HOME=$PWD
+echo "HOME was set to $HOME"
