@@ -15,7 +15,7 @@ class BufferObject(np.ndarray):
         elif input_arr is not None:
             obj = np.asarray(input_arr).view(cls)
         else:
-            obj = np.empty((0)).view(cls)
+            obj = np.empty(0).view(cls)
 
         obj.unit = unit
         return obj
@@ -31,7 +31,8 @@ class BufferObject(np.ndarray):
 
     # this method is called whenever you use a ufunc
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        """this implementation of __array_ufunc__ makes sure that all custom attributes are maintained when a ufunc operation is performed on our class."""
+        """this implementation of __array_ufunc__ makes sure that all custom attributes
+        are maintained when a ufunc operation is performed on our class."""
 
         args = ((i.view(np.ndarray) if isinstance(i, BufferObject) else i)
                 for i in inputs)
@@ -62,7 +63,7 @@ class BufferObject(np.ndarray):
 
         results = tuple((self._copy_attrs_to(result) if output is None else output)
                         for result, output in zip(results, outputs))
-        
+
         for result in results:
             # [IDV-280](https://jira.iter.org/browse/IDV-280). Clear unit attribute when processing occurs.
             if isinstance(result, BufferObject):

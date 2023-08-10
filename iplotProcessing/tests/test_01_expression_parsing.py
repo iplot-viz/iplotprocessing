@@ -14,21 +14,16 @@ class TestExpressionParsing(unittest.TestCase):
 
     def test_invalid_expressions(self) -> None:
         self.assertRaises(InvalidExpression, self.parser.set_expression, "${")
-        self.assertRaises(InvalidExpression,
-                          self.parser.set_expression, "${${")
+        self.assertRaises(InvalidExpression, self.parser.set_expression, "${${")
         self.assertRaises(InvalidExpression, self.parser.set_expression, "}")
         self.assertRaises(InvalidExpression, self.parser.set_expression, "}$")
         self.assertRaises(InvalidExpression, self.parser.set_expression, "}}")
         self.assertRaises(InvalidExpression, self.parser.set_expression, "${{")
         self.assertRaises(InvalidExpression, self.parser.set_expression, "$}")
-        self.assertRaises(InvalidExpression,
-                          self.parser.set_expression, "${time")
-        self.assertRaises(InvalidExpression,
-                          self.parser.set_expression, "time}")
-        self.assertRaises(InvalidExpression,
-                          self.parser.set_expression, "{time}")
-        self.assertRaises(InvalidExpression,
-                          self.parser.set_expression, "${{time}}")
+        self.assertRaises(InvalidExpression, self.parser.set_expression, "${time")
+        self.assertRaises(InvalidExpression, self.parser.set_expression, "time}")
+        self.assertRaises(InvalidExpression, self.parser.set_expression, "{time}")
+        self.assertRaises(InvalidExpression, self.parser.set_expression, "${{time}}")
 
     def test_vulnerabilities(self) -> None:
         self.assertRaises(InvalidExpression, self.parser.set_expression,
@@ -56,9 +51,9 @@ class TestExpressionParsing(unittest.TestCase):
         self.parser.substitute_var(subst)
         self.parser.eval_expr()
 
-        validResult = np.frombuffer(
+        valid_result = np.frombuffer(
             b'\x00\x00\x00\x00\x00\x00&@\x1d\xca_\x80:\x01$@\x86@x\x90\x7f\xa2&@\xbf\x1c\x80\xed:\x97$@')
-        for testVal, validVal in zip(self.parser.result, validResult):
+        for testVal, validVal in zip(self.parser.result, valid_result):
             self.assertAlmostEqual(testVal, validVal)
 
     def test_eval_wrong_complex(self) -> None:

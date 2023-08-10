@@ -102,8 +102,8 @@ class Signal:
     __truediv__ = binary.truediv
     __floordiv__ = binary.floordiv
     __mod__ = binary.mod
-    __divmod__ = binary.divmod
-    __pow__ = binary.pow
+    __divmod__ = binary.div_mod
+    __pow__ = binary.power
     __lshift__ = binary.lshift
     __rshift__ = binary.rshift
     __and__ = binary.logical_and
@@ -117,8 +117,8 @@ class Signal:
     __rtruediv__ = reflected.truediv
     __rfloordiv__ = reflected.floordiv
     __rmod__ = reflected.mod
-    __rdivmod__ = reflected.divmod
-    __rpow__ = reflected.pow
+    __rdivmod__ = reflected.div_mod
+    __rpow__ = reflected.power
     __rlshift__ = reflected.lshift
     __rrshift__ = reflected.rshift
     __rand__ = reflected.logical_and
@@ -132,7 +132,7 @@ class Signal:
     __itruediv__ = augmented.truediv
     __ifloordiv__ = augmented.floordiv
     __imod__ = augmented.mod
-    __ipow__ = augmented.pow
+    __ipow__ = augmented.power
     __ilshift__ = augmented.lshift
     __irshift__ = augmented.rshift
     __iand__ = augmented.logical_and
@@ -140,7 +140,7 @@ class Signal:
     __ior__ = augmented.logical_or
 
     __neg__ = unary.neg
-    __abs__ = unary.abs
+    __abs__ = unary.absolute
     __invert__ = unary.invert
 
     def __getattr__(self, name: str):

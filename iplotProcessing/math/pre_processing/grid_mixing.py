@@ -8,11 +8,11 @@ from iplotProcessing.common.grid_mixing import GridAlignmentMode
 from iplotProcessing.common.units import DATE_TIME_PRECISE
 from iplotProcessing.core import Signal, BufferObject
 
-from iplotLogging import setupLogger as sl
+from iplotLogging import setupLogger
 
 from scipy.interpolate.interpnd import LinearNDInterpolator
 
-logger = sl.get_logger(__name__, "INFO")
+logger = setupLogger.get_logger(__name__, "INFO")
 
 
 def _check_alias_map_equal(signals: typing.List[Signal]) -> bool:
@@ -20,6 +20,7 @@ def _check_alias_map_equal(signals: typing.List[Signal]) -> bool:
         if not (sig1.alias_map == sig2.alias_map):
             return False
     return True
+
 
 def _get_common_num_dims(arrays: typing.List[np.ndarray]) -> int:
     ar_iterator = iter(arrays)
@@ -32,8 +33,8 @@ def _get_common_num_dims(arrays: typing.List[np.ndarray]) -> int:
 
     return ndim
 
-def align(signals: typing.List[Signal], mode=GridAlignmentMode.UNION, kind=InterpolationKind.PREVIOUS):
 
+def align(signals: typing.List[Signal], mode=GridAlignmentMode.UNION, kind=InterpolationKind.PREVIOUS):
     # all signals must have same alias_map.
     if not _check_alias_map_equal(signals):
         return
@@ -121,7 +122,6 @@ def get_coarsest_time_unit(arrays: typing.List[BufferObject]) -> str:
 
 
 def intersection(arrays: typing.List[BufferObject]):
-
     if not len(arrays):
         return
 
@@ -151,7 +151,6 @@ def intersection(arrays: typing.List[BufferObject]):
 
 
 def union(arrays: typing.List[BufferObject]):
-
     if not len(arrays):
         return
 

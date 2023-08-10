@@ -15,8 +15,9 @@ class TestBObjectUserFunc(unittest.TestCase):
 
     def test_bo_ufunc_simple(self):
         res = self.b1 + self.b2 + self.b3
-        self.assertEqual(res.tobytes(
-        ), b'\x00\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\t\x00\x00\x00\x00\x00\x00\x00')
+        self.assertEqual(res.tobytes(),
+                         b'\x00\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x00'
+                         b'\x06\x00\x00\x00\x00\x00\x00\x00\t\x00\x00\x00\x00\x00\x00\x00')
         # self.assertEqual(res.unit, 's')
 
     def test_bo_ufunc_advanced_1(self):

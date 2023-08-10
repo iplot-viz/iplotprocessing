@@ -9,9 +9,9 @@ import numpy
 import re
 import scipy.signal
 from iplotProcessing.common import InvalidExpression, InvalidVariable, DATE_TIME, PRECISE_TIME
-import iplotLogging.setupLogger as ls
+from iplotLogging import setupLogger
 
-logger = ls.get_logger(__name__, "INFO")
+logger = setupLogger.get_logger(__name__, "INFO")
 
 ParserT = typing.TypeVar("ParserT", bound="Parser")
 
@@ -73,7 +73,7 @@ class Parser:
                 new_expr = new_expr.replace(match, replc)
                 logger.debug(f"new_expr = {new_expr} and new_key = {var}")
 
-            counter = counter+1
+            counter = counter + 1
 
             if counter > self.marker_in_count:
                 raise InvalidExpression(f"Invalid expression syntax {expr}")
@@ -95,10 +95,7 @@ class Parser:
 
     def is_syntax_valid(self, expr: str) -> bool:
         # make sure we have the following order ${ } ${ } otherwise fail
-        marker_in_pos = []
-        marker_out_pos = []
-
-        marker_in_pos = [m.start() for m in re.finditer('\${', expr)]
+        marker_in_pos = [m.start() for m in re.finditer(r'\${', expr)]
         marker_out_pos = [m.start() for m in re.finditer('}', expr)]
 
         if len(marker_in_pos) != len(marker_out_pos):
@@ -108,7 +105,7 @@ class Parser:
 
         self.marker_in_count = len(marker_in_pos)
         for i in range(len(marker_in_pos) - 2):
-            if marker_out_pos[i] < marker_in_pos[i + 1] and marker_out_pos[i] > marker_in_pos[i]:
+            if marker_in_pos[i + 1] > marker_out_pos[i] > marker_in_pos[i]:
                 continue
             else:
                 return False
@@ -153,13 +150,14 @@ class Parser:
         if self.expression.find("**") != -1 or self.expression.find("for ") != -1 or self.expression.find("if ") != -1:
             logger.debug(f"pre validate check 1 {self.expression}")
             raise InvalidExpression("Invalid expression")
-        if self.expression.find("__") != -1 or self.expression.find("[]") != -1 or self.expression.find("()") != -1 or self.expression.find("{}") != -1:
+        if self.expression.find("__") != -1 or self.expression.find("[]") != -1 or self.expression.find(
+                "()") != -1 or self.expression.find("{}") != -1:
             logger.debug(f"pre validate check 2 {self.expression}")
             raise InvalidExpression("Invalid expression")
 
     def validate_post_compile(self):
         logger.debug("Validating post compilation")
-        # to do put a timeout on the compile and eval
+        # to do put a timeout on compile and eval
         # print(self.supported_members)
         if self._compiled_obj:
             for name in self._compiled_obj.co_names:
@@ -180,7 +178,7 @@ class Parser:
     def eval_expr(self) -> ParserT:
         if self._compiled_obj is not None:
             try:
-                #logger.debug("eval exception ")
+                # logger.debug("eval exception ")
                 self.result = eval(self._compiled_obj,
                                    self.supported_members, self.locals)
             except ValueError as ve:

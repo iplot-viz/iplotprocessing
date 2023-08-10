@@ -27,7 +27,8 @@ class TestSignal2DAdd(unittest.TestCase):
         align([self.s1, self.s2, self.s3], GridAlignmentMode.UNION, kind=InterpolationKind.LINEAR)
         res = self.s1 + self.s2 + self.s3
         self.assertEqual(res.data.tobytes(
-        ), b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x08@\x00\x00\x00\x00\x00\x00\x18@\x00\x00\x00\x00\x00\x00"@')
+        ), b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+           b'\x08@\x00\x00\x00\x00\x00\x00\x18@\x00\x00\x00\x00\x00\x00"@')
 
     def test_signal_ufunc_advanced_1(self):
         unittest.skip('NotImplemented')
