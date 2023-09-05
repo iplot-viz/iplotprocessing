@@ -5,10 +5,9 @@ import typing
 
 from iplotProcessing.core.bobject import BufferObject
 from iplotProcessing.math.expressions import augmented, binary, reflected, unary
-from iplotLogging import setupLogger as sl
+from iplotLogging import setupLogger
 
-
-logger = sl.get_logger(__name__, "INFO")
+logger = setupLogger.get_logger(__name__, "INFO")
 
 SignalT = typing.TypeVar("SignalT", bound="Signal")
 
@@ -175,8 +174,7 @@ class Signal:
             else:
                 outputs = (None,) * ufunc.nout
 
-            results = self._data[idx].__array_ufunc__(ufunc, method, *args,
-                                                        **kwargs)  # pylint: disable=no-member
+            results = self._data[idx].__array_ufunc__(ufunc, method, *args, **kwargs)  # pylint: disable=no-member
 
             if results is NotImplemented:
                 return NotImplemented
