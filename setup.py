@@ -2,9 +2,11 @@
 # Author: Jaswant Sai Panchumarti
 
 import setuptools
-import versioneer
+import os
+import sys
 
-# from iplotProcessing._version import __version__
+sys.path.append(os.getcwd())
+import versioneer
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -13,12 +15,6 @@ setuptools.setup(
     name="iplotProcessing",
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    setup_requires=["setuptools-git-versioning"],
-    # version_config={
-    #     "version_callback": __version__,
-    #     "template": "{tag}",
-    #     "dirty_template": "{tag}.dev{ccount}.{sha}",
-    # },
     author="Panchumarti Jaswant EXT",
     author_email="jaswant.panchumarti@iter.org",
     description="Data processing for applications using IDSs or CBS",
