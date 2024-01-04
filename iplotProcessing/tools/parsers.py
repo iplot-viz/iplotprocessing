@@ -2,7 +2,7 @@
 # Author: Abadie Lana
 # Changelog:
 #   Sept 2021: Added generic get_member_list function to inject outsider functions/attributes [Jaswant Sai Panchumarti]
-
+import json
 from inspect import getmembers
 import typing
 import numpy
@@ -10,11 +10,16 @@ import re
 import scipy.signal
 from iplotProcessing.common import InvalidExpression, InvalidVariable, DATE_TIME, PRECISE_TIME
 from iplotLogging import setupLogger
+import importlib
+import os
 
 logger = setupLogger.get_logger(__name__, "INFO")
 
 ParserT = typing.TypeVar("ParserT", bound="Parser")
 
+EXEC_PATH = __file__
+ROOT = os.path.dirname(EXEC_PATH)
+DEFAULT_PYTHON_MODULES_JSON = os.path.join(ROOT, 'pythonmodulesdefault.json')
 
 class Parser:
     marker_in = "${"
@@ -22,7 +27,7 @@ class Parser:
     prefix = "key"
     date_time_unit_pattern = rf"(\d+)([{''.join(DATE_TIME)}]\b|{'|'.join(PRECISE_TIME)})"
 
-    def __init__(self):
+    def __init__(self, new_module=""):
         self.expression = ""
         self.marker_in_count = 0
         self._compiled_obj = None
@@ -31,6 +36,9 @@ class Parser:
         self.has_time_units = False
         self._supported_member_names = set()
         self._supported_members = dict()
+        if DEFAULT_PYTHON_MODULES_JSON:
+            self.load_modules(DEFAULT_PYTHON_MODULES_JSON, new_module)
+        """
         self.inject(self.get_member_list(numpy))
         self.inject(self.get_member_list(numpy.add))
         self.inject(self.get_member_list(numpy.ndarray))
@@ -39,9 +47,35 @@ class Parser:
         self.inject({"np": numpy})
         self.inject({"sp.signal": scipy.signal})
         self.inject({"__builtins__": '{}'})
+        """
         self.locals = {}
         self.var_map = {}
         self._var_counter = 0
+
+    def load_modules(self, config_file, new_module):
+        if new_module != "":
+            # Escribir en el fichero el nuevo modulo
+            with open(config_file, 'r+') as file:
+                config = json.load(file)
+                modules = config.get('user_modules', [])
+                if new_module not in modules:
+                    modules.append(new_module)
+                    config['user_modules'] = modules
+                    file.seek(0)
+                    json.dump(config, file, indent=4)
+                    file.truncate()
+
+        with open(config_file, 'r') as file:
+            config = json.load(file)
+            modules = config.get('user_modules', [])
+
+            for module_name in modules:
+                try:
+                    loaded_module = importlib.import_module(module_name)
+                    self.inject(self.get_member_list(loaded_module))
+                    print(f"Se cargo correctamente el módulo: {module_name}")
+                except ImportError:
+                    print(f"No se pudo cargar el módulo: {module_name}")
 
     @property
     def supported_members(self) -> dict:
