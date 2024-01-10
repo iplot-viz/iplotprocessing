@@ -6,12 +6,9 @@
         "scipy.signal"
     ],
     "user_modules": [
-        "numpy.arange",
-        "scipy.linalg",
-        "scipy.fft",
-        "scipy.special",
-        "scipy.integrate",
-        "numpy.array",
-        "scipy.sparse"
+        "numpy",
+        "numpy.add",
+        "numpy.ndarray",
+        "scipy.signal"
     ]
 }

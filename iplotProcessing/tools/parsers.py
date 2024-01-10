@@ -37,7 +37,7 @@ class Parser:
         self._supported_member_names = set()
         self._supported_members = dict()
         if DEFAULT_PYTHON_MODULES_JSON:
-            self.load_modules(DEFAULT_PYTHON_MODULES_JSON, new_module)
+            self.load_modules(new_module)
         """
         self.inject(self.get_member_list(numpy))
         self.inject(self.get_member_list(numpy.add))
@@ -52,10 +52,13 @@ class Parser:
         self.var_map = {}
         self._var_counter = 0
 
-    def load_modules(self, config_file, new_module):
+    def load_modules(self, new_module):
         if new_module != "":
-            # Escribir en el fichero el nuevo modulo
-            with open(config_file, 'r+') as file:
+            # Check new module
+            loaded_module = importlib.import_module(new_module)
+
+            # Write new module in configuration file
+            with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
                 config = json.load(file)
                 modules = config.get('user_modules', [])
                 if new_module not in modules:
@@ -65,7 +68,8 @@ class Parser:
                     json.dump(config, file, indent=4)
                     file.truncate()
 
-        with open(config_file, 'r') as file:
+        # Import modules
+        with open(DEFAULT_PYTHON_MODULES_JSON, 'r') as file:
             config = json.load(file)
             modules = config.get('user_modules', [])
 
@@ -76,6 +80,32 @@ class Parser:
                     print(f"Se cargo correctamente el módulo: {module_name}")
                 except ImportError:
                     print(f"No se pudo cargar el módulo: {module_name}")
+
+    @staticmethod
+    def get_modules():
+        with open(DEFAULT_PYTHON_MODULES_JSON, 'r') as file:
+            config = json.load(file)
+            modules = config.get('user_modules', [])
+            return modules
+
+    def reset_modules(self):
+        with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
+            config = json.load(file)
+            modules = config.get('modules', [])
+            config['user_modules'] = modules
+            file.seek(0)
+            json.dump(config, file, indent=4)
+            file.truncate()
+
+    def clear_modules(self, index):
+        with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
+            config = json.load(file)
+            modules = config.get('user_modules', [])
+            result_modules = [i for j, i in enumerate(modules) if j not in index]
+            config['user_modules'] = result_modules
+            file.seek(0)
+            json.dump(config, file, indent=4)
+            file.truncate()
 
     @property
     def supported_members(self) -> dict:
