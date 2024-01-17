@@ -9,6 +9,8 @@ import numpy
 import re
 import scipy.signal
 from iplotProcessing.common import InvalidExpression, InvalidVariable, DATE_TIME, PRECISE_TIME
+from iplotProcessing.core import BufferObject
+from iplotProcessing.core import Signal as ProcessingSignal
 from iplotLogging import setupLogger
 import importlib
 import os
@@ -119,6 +121,7 @@ class Parser:
 
     def replace_var(self, expr: str) -> str:
         new_expr = expr
+        self.var_map = {}
         # protect the code against infinite loop in case of...
         counter = 0
         while True:
@@ -252,3 +255,16 @@ class Parser:
                 raise InvalidVariable(self.var_map, self.locals)
 
         return self
+
+
+class ParserSingleton:
+    _instance = None
+
+    def __new__(cls):
+        if not cls._instance:
+            cls._instance = super(ParserSingleton, cls).__new__(cls)
+            cls._instance.parser = Parser()
+            #cls._instance.parser.inject(Parser.get_member_list(ProcessingSignal))
+            #cls._instance.parser.inject(Parser.get_member_list(BufferObject))
+
+        return cls._instance
