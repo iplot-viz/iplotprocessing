@@ -2,6 +2,8 @@
 # Author: Abadie Lana
 # Changelog:
 #   Sept 2021: Added generic get_member_list function to inject outsider functions/attributes [Jaswant Sai Panchumarti]
+import inspect
+import re
 import json
 from inspect import getmembers
 import typing
@@ -29,59 +31,90 @@ class Parser:
     prefix = "key"
     date_time_unit_pattern = rf"(\d+)([{''.join(DATE_TIME)}]\b|{'|'.join(PRECISE_TIME)})"
 
+    _instance = None
+    def __new__(cls):
+        if not cls._instance:
+            cls._instance = super(Parser, cls).__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+
     def __init__(self, new_module=""):
-        self.expression = ""
-        self.marker_in_count = 0
-        self._compiled_obj = None
-        self.result = None
-        self.is_valid = False
-        self.has_time_units = False
-        self._supported_member_names = set()
-        self._supported_members = dict()
-        if DEFAULT_PYTHON_MODULES_JSON:
-            self.load_modules(new_module)
-        """
-        self.inject(self.get_member_list(numpy))
-        self.inject(self.get_member_list(numpy.add))
-        self.inject(self.get_member_list(numpy.ndarray))
-        self.inject(self.get_member_list(scipy.signal))
-        self.inject({"numpy": numpy})
-        self.inject({"np": numpy})
-        self.inject({"sp.signal": scipy.signal})
-        self.inject({"__builtins__": '{}'})
-        """
-        self.locals = {}
-        self.var_map = {}
-        self._var_counter = 0
+        if not self._initialized:
+            self._initialized = True
+            self.expression = ""
+            self.marker_in_count = 0
+            self._compiled_obj = None
+            self.result = None
+            self.is_valid = False
+            self.has_time_units = False
+            self._supported_member_names = set()
+            self._supported_members = dict()
+
+            self.inject(Parser.get_member_list(ProcessingSignal))
+            self.inject(Parser.get_member_list(BufferObject))
+
+            self.init_modules()
+            self.inject({"np": numpy})
+
+            self.locals = {}
+            self.var_map = {}
+            self._var_counter = 0
+
+    def add_module(self, module, recursive, parent_name=""):
+        self.inject(self.get_member_list(module))
+
+        if not recursive:
+            return
+
+        for name, obj in inspect.getmembers(module):
+            full_name = f"{parent_name}.{name}" if parent_name else name
+
+            if inspect.ismodule(obj) and parent_name in obj.__name__:
+                self.add_module(obj, recursive, full_name)
+            elif inspect.isclass(obj):
+                self.inject(self.get_member_list(obj))
 
     def load_modules(self, new_module):
-        if new_module != "":
-            # Check new module
+        if new_module == "":
+            return
+
+        # Check new module
+        module_parts = new_module.split('.')
+        module_name = module_parts[0]
+        submodule_name = '.'.join(module_parts[1:])
+        recursive = True
+        if len(module_parts) == 1:
+            recursive = False
+
+        if submodule_name == '*':
+            loaded_module = importlib.import_module(module_name)
+        else:
             loaded_module = importlib.import_module(new_module)
 
-            # Write new module in configuration file
-            with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
-                config = json.load(file)
-                modules = config.get('user_modules', [])
-                if new_module not in modules:
-                    modules.append(new_module)
-                    config['user_modules'] = modules
-                    file.seek(0)
-                    json.dump(config, file, indent=4)
-                    file.truncate()
+        self.add_module(loaded_module, recursive)
 
-        # Import modules
-        with open(DEFAULT_PYTHON_MODULES_JSON, 'r') as file:
+        if not recursive:
+            self.inject({module_name: loaded_module})
+
+        # Write new module in configuration file
+        with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
             config = json.load(file)
             modules = config.get('user_modules', [])
+            if new_module not in modules:
+                modules.append(new_module)
+                config['user_modules'] = modules
+                file.seek(0)
+                json.dump(config, file, indent=4)
+                file.truncate()
 
-            for module_name in modules:
-                try:
-                    loaded_module = importlib.import_module(module_name)
-                    self.inject(self.get_member_list(loaded_module))
-                    print(f"Se cargo correctamente el módulo: {module_name}")
-                except ImportError:
-                    print(f"No se pudo cargar el módulo: {module_name}")
+    def init_modules(self):
+        # Import modules from conf file
+        with open(DEFAULT_PYTHON_MODULES_JSON, 'r') as file:
+            config = json.load(file)
+            modules = config.get('modules', [])
+
+            for module in modules:
+                self.load_modules(module)
 
     @staticmethod
     def get_modules():
@@ -118,6 +151,14 @@ class Parser:
         for k in members.keys():
             self._supported_member_names.add(k)
         return self
+        """
+        for k,v in members.items():
+            if k not in self._supported_member_names:
+                self._supported_members[k] = v
+                self._supported_member_names.add(k)
+        return self
+        """
+
 
     def replace_var(self, expr: str) -> str:
         new_expr = expr
@@ -233,8 +274,7 @@ class Parser:
 
     @staticmethod
     def get_member_list(parent):
-        functions_list = [o for o in getmembers(parent)]
-        return dict(functions_list)
+        return dict(getmembers(parent))
 
     def substitute_var(self, val_map) -> ParserT:
         for k in val_map.keys():
@@ -255,16 +295,3 @@ class Parser:
                 raise InvalidVariable(self.var_map, self.locals)
 
         return self
-
-
-class ParserSingleton:
-    _instance = None
-
-    def __new__(cls):
-        if not cls._instance:
-            cls._instance = super(ParserSingleton, cls).__new__(cls)
-            cls._instance.parser = Parser()
-            #cls._instance.parser.inject(Parser.get_member_list(ProcessingSignal))
-            #cls._instance.parser.inject(Parser.get_member_list(BufferObject))
-
-        return cls._instance
