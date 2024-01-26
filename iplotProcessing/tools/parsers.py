@@ -3,13 +3,10 @@
 # Changelog:
 #   Sept 2021: Added generic get_member_list function to inject outsider functions/attributes [Jaswant Sai Panchumarti]
 import inspect
-import re
 import json
 from inspect import getmembers
 import typing
-import numpy
 import re
-import scipy.signal
 from iplotProcessing.common import InvalidExpression, InvalidVariable, DATE_TIME, PRECISE_TIME
 from iplotProcessing.core import BufferObject
 from iplotProcessing.core import Signal as ProcessingSignal
@@ -25,6 +22,7 @@ EXEC_PATH = __file__
 ROOT = os.path.dirname(EXEC_PATH)
 DEFAULT_PYTHON_MODULES_JSON = os.path.join(ROOT, 'pythonmodulesdefault.json')
 
+
 class Parser:
     marker_in = "${"
     marker_out = "}"
@@ -32,13 +30,14 @@ class Parser:
     date_time_unit_pattern = rf"(\d+)([{''.join(DATE_TIME)}]\b|{'|'.join(PRECISE_TIME)})"
 
     _instance = None
+
     def __new__(cls):
         if not cls._instance:
             cls._instance = super(Parser, cls).__new__(cls)
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, new_module=""):
+    def __init__(self):
         if not self._initialized:
             self._initialized = True
             self.expression = ""
@@ -54,7 +53,6 @@ class Parser:
             self.inject(Parser.get_member_list(BufferObject))
 
             self.init_modules()
-            self.inject({"np": numpy})
 
             self.locals = {}
             self.var_map = {}
@@ -74,19 +72,29 @@ class Parser:
             elif inspect.isclass(obj):
                 self.inject(self.get_member_list(obj))
 
-    def load_modules(self, new_module):
+    def load_modules(self, new_module, init=False):
         if new_module == "":
             return
 
         # Check new module
-        module_parts = new_module.split('.')
-        module_name = module_parts[0]
+        if 'as' in new_module:
+            module_parts = new_module.split(' as ')
+            module_name = module_parts[0]
+            alias = module_parts[1]
+        else:
+            module_parts = new_module.split('.')
+            module_name = module_parts[0]
+            alias = None
+
         submodule_name = '.'.join(module_parts[1:])
+
         recursive = True
-        if len(module_parts) == 1:
+        if len(module_parts) == 1 or alias:
             recursive = False
 
         if submodule_name == '*':
+            loaded_module = importlib.import_module(module_name)
+        elif alias:
             loaded_module = importlib.import_module(module_name)
         else:
             loaded_module = importlib.import_module(new_module)
@@ -95,52 +103,73 @@ class Parser:
 
         if not recursive:
             self.inject({module_name: loaded_module})
+            if alias:
+                self.inject({alias: loaded_module})
 
-        # Write new module in configuration file
-        with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
-            config = json.load(file)
-            modules = config.get('user_modules', [])
-            if new_module not in modules:
-                modules.append(new_module)
-                config['user_modules'] = modules
-                file.seek(0)
-                json.dump(config, file, indent=4)
-                file.truncate()
+        if not init:
+            # Write new module in configuration file
+            with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
+                config = json.load(file)
+                modules = config.get('user_modules', [])
+                if new_module not in modules:
+                    modules.append(new_module)
+                    config['user_modules'] = modules
+                    file.seek(0)
+                    json.dump(config, file, indent=4)
+                    file.truncate()
 
     def init_modules(self):
-        # Import modules from conf file
-        with open(DEFAULT_PYTHON_MODULES_JSON, 'r') as file:
-            config = json.load(file)
-            modules = config.get('modules', [])
-
-            for module in modules:
-                self.load_modules(module)
+        modules = self.get_modules()
+        for module in modules:
+            try:
+                self.load_modules(module, True)
+            except Exception as e:
+                logger.error(f"Error loading module {module}: {e}")
+                self.remove_module(module)
 
     @staticmethod
-    def get_modules():
-        with open(DEFAULT_PYTHON_MODULES_JSON, 'r') as file:
-            config = json.load(file)
-            modules = config.get('user_modules', [])
-            return modules
-
-    def reset_modules(self):
+    def remove_module(module):
         with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
             config = json.load(file)
-            modules = config.get('modules', [])
+            modules = config.get('user_modules', [])
+            modules.remove(module)
             config['user_modules'] = modules
             file.seek(0)
             json.dump(config, file, indent=4)
             file.truncate()
 
-    def clear_modules(self, index):
+    @staticmethod
+    def get_modules():
+        # Import modules from conf file
+        with open(DEFAULT_PYTHON_MODULES_JSON, 'r') as file:
+            config = json.load(file)
+            modules = list(dict.fromkeys(config.get('modules', []) + config.get('user_modules', [])))
+            return modules
+
+    @staticmethod
+    def reset_modules():
+        with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
+            config = json.load(file)
+            modules = config.get('modules', [])
+            config['user_modules'] = []
+            file.seek(0)
+            json.dump(config, file, indent=4)
+            file.truncate()
+            return len(modules)
+
+    @staticmethod
+    def clear_modules(index):
         with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
             config = json.load(file)
             modules = config.get('user_modules', [])
-            result_modules = [i for j, i in enumerate(modules) if j not in index]
+            default_modules = config.get('modules', [])
+            valid_index = [i for i in index if i > len(default_modules) - 1]
+            result_modules = [i for j, i in enumerate(modules) if j not in valid_index]
             config['user_modules'] = result_modules
             file.seek(0)
             json.dump(config, file, indent=4)
             file.truncate()
+            return valid_index
 
     @property
     def supported_members(self) -> dict:
@@ -151,14 +180,6 @@ class Parser:
         for k in members.keys():
             self._supported_member_names.add(k)
         return self
-        """
-        for k,v in members.items():
-            if k not in self._supported_member_names:
-                self._supported_members[k] = v
-                self._supported_member_names.add(k)
-        return self
-        """
-
 
     def replace_var(self, expr: str) -> str:
         new_expr = expr
