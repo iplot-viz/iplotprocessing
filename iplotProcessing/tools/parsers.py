@@ -72,12 +72,12 @@ class Parser:
             elif inspect.isclass(obj):
                 self.inject(self.get_member_list(obj))
 
-    def load_modules(self, new_module, init=False):
+    def load_modules(self, new_module):
         if new_module == "":
             return
 
         # Check new module
-        if 'as' in new_module:
+        if ' as ' in new_module:
             module_parts = new_module.split(' as ')
             module_name = module_parts[0]
             alias = module_parts[1]
@@ -88,9 +88,7 @@ class Parser:
 
         submodule_name = '.'.join(module_parts[1:])
 
-        recursive = True
-        if len(module_parts) == 1 or alias:
-            recursive = False
+        recursive = len(module_parts) != 1 and not alias
 
         if submodule_name == '*':
             loaded_module = importlib.import_module(module_name)
@@ -106,37 +104,42 @@ class Parser:
             if alias:
                 self.inject({alias: loaded_module})
 
-        if not init:
-            # Write new module in configuration file
-            with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
-                config = json.load(file)
-                modules = config.get('user_modules', [])
-                if new_module not in modules:
-                    modules.append(new_module)
-                    config['user_modules'] = modules
-                    file.seek(0)
-                    json.dump(config, file, indent=4)
-                    file.truncate()
-
     def init_modules(self):
         modules = self.get_modules()
         for module in modules:
             try:
-                self.load_modules(module, True)
+                self.load_modules(module)
             except Exception as e:
                 logger.error(f"Error loading module {module}: {e}")
-                self.remove_module(module)
+                self.remove_module_to_config(module)
 
     @staticmethod
-    def remove_module(module):
+    def remove_module_to_config(module):
         with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
             config = json.load(file)
-            modules = config.get('user_modules', [])
-            modules.remove(module)
-            config['user_modules'] = modules
+            modules = config.get('modules', [])
+            user_modules = config.get('user_modules', [])
+            if module in modules:
+                modules.remove(module)
+                config['modules'] = modules
+            if module in user_modules:
+                user_modules.remove(module)
+                config['user_modules'] = user_modules
             file.seek(0)
             json.dump(config, file, indent=4)
             file.truncate()
+
+    def add_module_to_config(self, new_module):
+        # Write new module in configuration file
+        with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
+            config = json.load(file)
+            modules = config.get('user_modules', [])
+            if new_module not in modules:
+                modules.append(new_module)
+                config['user_modules'] = modules
+                file.seek(0)
+                json.dump(config, file, indent=4)
+                file.truncate()
 
     @staticmethod
     def get_modules():
