@@ -24,6 +24,13 @@ DEFAULT_PYTHON_MODULES_JSON = os.path.join(ROOT, 'pythonmodulesdefault.json')
 
 
 class Parser:
+    """
+        This class has been designed following the Singleton design pattern in order to guarantee the existence of a
+        single instance of the class in the application.
+        This avoids the injection and continuous loading of the modules that are imported by the user when processing
+        the different expressions.
+    """
+
     marker_in = "${"
     marker_out = "}"
     prefix = "key"
