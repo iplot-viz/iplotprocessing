@@ -58,17 +58,14 @@ class Parser:
             self.var_map = {}
             self._var_counter = 0
 
-    def add_module(self, module, recursive, parent_name=""):
+    def load_submodules(self, module, parent_name=""):
         self.inject(self.get_member_list(module))
-
-        if not recursive:
-            return
 
         for name, obj in inspect.getmembers(module):
             full_name = f"{parent_name}.{name}" if parent_name else name
 
             if inspect.ismodule(obj) and parent_name in obj.__name__:
-                self.add_module(obj, recursive, full_name)
+                self.load_submodules(obj, full_name)
             elif inspect.isclass(obj):
                 self.inject(self.get_member_list(obj))
 
@@ -76,6 +73,8 @@ class Parser:
         if new_module == "":
             return
 
+        alias = None
+        recursive = False
         # Check new module
         if ' as ' in new_module:
             module_parts = new_module.split(' as ')
@@ -83,26 +82,22 @@ class Parser:
             alias = module_parts[1]
         else:
             module_parts = new_module.split('.')
-            module_name = module_parts[0]
-            alias = None
+            if module_parts[-1] == '*':
+                recursive = True
+                module_name = '.'.join(module_parts[:-1])
+            else:
+                module_name = new_module
 
-        submodule_name = '.'.join(module_parts[1:])
+        loaded_module = importlib.import_module(module_name)
 
-        recursive = len(module_parts) != 1 and not alias
+        self.inject({module_name: loaded_module})
+        if alias:
+            self.inject({alias: loaded_module})
 
-        if submodule_name == '*':
-            loaded_module = importlib.import_module(module_name)
-        elif alias:
-            loaded_module = importlib.import_module(module_name)
+        if recursive:
+            self.load_submodules(loaded_module, module_name)
         else:
-            loaded_module = importlib.import_module(new_module)
-
-        self.add_module(loaded_module, recursive)
-
-        if not recursive:
-            self.inject({module_name: loaded_module})
-            if alias:
-                self.inject({alias: loaded_module})
+            self.inject(self.get_member_list(loaded_module))
 
     def init_modules(self):
         modules = self.get_modules()
@@ -111,10 +106,10 @@ class Parser:
                 self.load_modules(module)
             except Exception as e:
                 logger.error(f"Error loading module {module}: {e}")
-                self.remove_module_to_config(module)
+                self.remove_module_from_config(module)
 
     @staticmethod
-    def remove_module_to_config(module):
+    def remove_module_from_config(module):
         with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
             config = json.load(file)
             modules = config.get('modules', [])
@@ -129,7 +124,8 @@ class Parser:
             json.dump(config, file, indent=4)
             file.truncate()
 
-    def add_module_to_config(self, new_module):
+    @staticmethod
+    def add_module_to_config(new_module):
         # Write new module in configuration file
         with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
             config = json.load(file)
@@ -148,6 +144,12 @@ class Parser:
             config = json.load(file)
             modules = list(dict.fromkeys(config.get('modules', []) + config.get('user_modules', [])))
             return modules
+
+    @staticmethod
+    def get_total_default_modules():
+        with open(DEFAULT_PYTHON_MODULES_JSON, 'r') as file:
+            config = json.load(file)
+            return len(dict.fromkeys(config.get('modules', [])))
 
     @staticmethod
     def reset_modules():
