@@ -1,14 +1,9 @@
 {
     "modules": [
         "numpy",
-        "numpy.add",
-        "numpy.ndarray",
-        "scipy.signal"
+        "numpy as np",
+        "scipy as sp"
     ],
     "user_modules": [
-        "numpy",
-        "numpy.add",
-        "numpy.ndarray",
-        "scipy.signal"
     ]
 }
