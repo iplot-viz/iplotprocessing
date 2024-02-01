@@ -1,9 +1,7 @@
 {
     "modules": [
-        "numpy",
         "numpy as np",
         "scipy as sp"
     ],
-    "user_modules": [
-    ]
+    "user_modules": []
 }

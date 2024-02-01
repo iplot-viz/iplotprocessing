@@ -38,5 +38,6 @@ setuptools.setup(
     package_data={
         "iplotProcessing.example": ["example_inp.csv"],
         "iplotProcessing.core": ["blueprint.json"],
+        "iplotProcessing.tools": ["default_modules.json"]
     },
 )

@@ -20,7 +20,7 @@ ParserT = typing.TypeVar("ParserT", bound="Parser")
 
 EXEC_PATH = __file__
 ROOT = os.path.dirname(EXEC_PATH)
-DEFAULT_PYTHON_MODULES_JSON = os.path.join(ROOT, 'pythonmodulesdefault.json')
+DEFAULT_PYTHON_MODULES_JSON = os.path.join(ROOT, 'default_modules.json')
 
 
 class Parser:
