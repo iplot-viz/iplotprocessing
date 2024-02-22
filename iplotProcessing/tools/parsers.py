@@ -20,7 +20,7 @@ ParserT = typing.TypeVar("ParserT", bound="Parser")
 
 EXEC_PATH = __file__
 ROOT = os.path.dirname(EXEC_PATH)
-DEFAULT_PYTHON_MODULES_JSON = os.path.join(ROOT, 'default_modules.json')
+DEFAULT_PYTHON_MODULES_JSON = os.path.join(os.getenv('IPLOT_PMODULE_PATH',default=ROOT), 'default_modules.json')
 
 
 class Parser:
@@ -117,32 +117,42 @@ class Parser:
 
     @staticmethod
     def remove_module_from_config(module):
-        with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
-            config = json.load(file)
-            modules = config.get('modules', [])
-            user_modules = config.get('user_modules', [])
-            if module in modules:
-                modules.remove(module)
-                config['modules'] = modules
-            if module in user_modules:
-                user_modules.remove(module)
-                config['user_modules'] = user_modules
-            file.seek(0)
-            json.dump(config, file, indent=4)
-            file.truncate()
-
-    @staticmethod
-    def add_module_to_config(new_module):
-        # Write new module in configuration file
-        with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
-            config = json.load(file)
-            modules = config.get('user_modules', [])
-            if new_module not in modules:
-                modules.append(new_module)
-                config['user_modules'] = modules
+        try:
+            with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
+                config = json.load(file)
+                modules = config.get('modules', [])
+                user_modules = config.get('user_modules', [])
+                if module in modules:
+                    modules.remove(module)
+                    config['modules'] = modules
+                if module in user_modules:
+                    user_modules.remove(module)
+                    config['user_modules'] = user_modules
                 file.seek(0)
                 json.dump(config, file, indent=4)
                 file.truncate()
+        except PermissionError:
+            # Handling of permissions error
+            logger.error("Error: You do not have the necessary permissions to modify the configuration file. Change the"
+                         "environment variable: IPLOT_PMODULE_PATH value")
+
+    @staticmethod
+    def add_module_to_config(new_module):
+        try:
+            # Write new module in configuration file
+            with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
+                config = json.load(file)
+                modules = config.get('user_modules', [])
+                if new_module not in modules:
+                    modules.append(new_module)
+                    config['user_modules'] = modules
+                    file.seek(0)
+                    json.dump(config, file, indent=4)
+                    file.truncate()
+        except PermissionError:
+            # Handling of permissions error
+            logger.error("Error: You do not have the necessary permissions to modify the configuration file. Change the"
+                         "environment variable: IPLOT_PMODULE_PATH value")
 
     @staticmethod
     def get_modules():
@@ -160,28 +170,38 @@ class Parser:
 
     @staticmethod
     def reset_modules():
-        with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
-            config = json.load(file)
-            modules = config.get('modules', [])
-            config['user_modules'] = []
-            file.seek(0)
-            json.dump(config, file, indent=4)
-            file.truncate()
-            return len(modules)
+        try:
+            with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
+                config = json.load(file)
+                modules = config.get('modules', [])
+                config['user_modules'] = []
+                file.seek(0)
+                json.dump(config, file, indent=4)
+                file.truncate()
+                return len(modules)
+        except PermissionError:
+            # Handling of permissions error
+            logger.error("Error: You do not have the necessary permissions to modify the configuration file. Change the"
+                         "environment variable: IPLOT_PMODULE_PATH value")
 
     @staticmethod
     def clear_modules(index):
-        with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
-            config = json.load(file)
-            modules = config.get('user_modules', [])
-            default_modules = config.get('modules', [])
-            valid_index = [i for i in index if i > len(default_modules) - 1]
-            result_modules = [i for j, i in enumerate(modules) if j not in valid_index]
-            config['user_modules'] = result_modules
-            file.seek(0)
-            json.dump(config, file, indent=4)
-            file.truncate()
-            return valid_index
+        try:
+            with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
+                config = json.load(file)
+                modules = config.get('user_modules', [])
+                default_modules = config.get('modules', [])
+                valid_index = [i for i in index if i > len(default_modules) - 1]
+                result_modules = [i for j, i in enumerate(modules) if j not in valid_index]
+                config['user_modules'] = result_modules
+                file.seek(0)
+                json.dump(config, file, indent=4)
+                file.truncate()
+                return valid_index
+        except PermissionError:
+            # Handling of permissions error
+            logger.error("Error: You do not have the necessary permissions to modify the configuration file. Change the"
+                         "environment variable: IPLOT_PMODULE_PATH value")
 
     @property
     def supported_members(self) -> dict:
