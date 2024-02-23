@@ -20,7 +20,7 @@ ParserT = typing.TypeVar("ParserT", bound="Parser")
 
 EXEC_PATH = __file__
 ROOT = os.path.dirname(EXEC_PATH)
-DEFAULT_PYTHON_MODULES_JSON = os.path.join(os.getenv('IPLOT_PMODULE_PATH',default=ROOT), 'default_modules.json')
+DEFAULT_PYTHON_MODULES_JSON = os.path.join(os.getenv('IPLOT_PMODULE_PATH', default=ROOT), 'default_modules.json')
 
 
 class Parser:
@@ -65,6 +65,37 @@ class Parser:
             self.var_map = {}
             self._var_counter = 0
 
+    @staticmethod
+    def load_json_file(file_path):
+        # Load json configuration file
+        try:
+            with open(file_path, 'r+') as file:
+                config = json.load(file)
+                # Keys check
+                if "modules" not in config:
+                    config["modules"] = []
+                if "user_modules" not in config:
+                    config["user_modules"] = []
+                return config
+
+        except (FileNotFoundError, json.JSONDecodeError):
+            logger.error("The JSON file does not exist or is not in a valid format. Creating a new one...")
+            config = {"modules": [], "user_modules": []}
+            return config
+
+        except PermissionError:
+            # Handling of permissions error
+            logger.error("Error: You do not have the necessary permissions to modify the configuration file. Change the"
+                         "environment variable: IPLOT_PMODULE_PATH value")
+
+    @staticmethod
+    def write_json_file(file_path, config):
+        # Writing to the configuration file
+        with open(file_path, 'r+') as file:
+            file.seek(0)
+            json.dump(config, file, indent=4)
+            file.truncate()
+
     def load_submodules(self, module, parent_name=""):
         self.inject(self.get_member_list(module))
 
@@ -106,7 +137,18 @@ class Parser:
         else:
             self.inject(self.get_member_list(loaded_module))
 
+    def prev_process(self):
+        # The correct format is set before starting to evaluate the modules
+        config = self.load_json_file(DEFAULT_PYTHON_MODULES_JSON)
+        list_default = list(dict.fromkeys(config.get('modules', [])))
+        list_user = list(dict.fromkeys(config.get('user_modules', [])))
+        user_modules = [module for module in list_user if module not in list_default]
+        config['modules'] = list_default
+        config['user_modules'] = user_modules
+        self.write_json_file(DEFAULT_PYTHON_MODULES_JSON, config)
+
     def init_modules(self):
+        self.prev_process()
         modules = self.get_modules()
         for module in modules:
             try:
@@ -115,93 +157,55 @@ class Parser:
                 logger.error(f"Error loading module {module}: {e}")
                 self.remove_module_from_config(module)
 
-    @staticmethod
-    def remove_module_from_config(module):
-        try:
-            with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
-                config = json.load(file)
-                modules = config.get('modules', [])
-                user_modules = config.get('user_modules', [])
-                if module in modules:
-                    modules.remove(module)
-                    config['modules'] = modules
-                if module in user_modules:
-                    user_modules.remove(module)
-                    config['user_modules'] = user_modules
-                file.seek(0)
-                json.dump(config, file, indent=4)
-                file.truncate()
-        except PermissionError:
-            # Handling of permissions error
-            logger.error("Error: You do not have the necessary permissions to modify the configuration file. Change the"
-                         "environment variable: IPLOT_PMODULE_PATH value")
+    def remove_module_from_config(self, module):
+        config = self.load_json_file(DEFAULT_PYTHON_MODULES_JSON)
+        modules = config.get('modules', [])
+        user_modules = config.get('user_modules', [])
+        if module in modules:
+            while module in modules:
+                modules.remove(module)
+            config['modules'] = modules
+        if module in user_modules:
+            while module in user_modules:
+                user_modules.remove(module)
+            config['user_modules'] = user_modules
+        self.write_json_file(DEFAULT_PYTHON_MODULES_JSON, config)
 
-    @staticmethod
-    def add_module_to_config(new_module):
-        try:
-            # Write new module in configuration file
-            with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
-                config = json.load(file)
-                modules = config.get('user_modules', [])
-                if new_module not in modules:
-                    modules.append(new_module)
-                    config['user_modules'] = modules
-                    file.seek(0)
-                    json.dump(config, file, indent=4)
-                    file.truncate()
-        except PermissionError:
-            # Handling of permissions error
-            logger.error("Error: You do not have the necessary permissions to modify the configuration file. Change the"
-                         "environment variable: IPLOT_PMODULE_PATH value")
+    def add_module_to_config(self, new_module):
+        config = self.load_json_file(DEFAULT_PYTHON_MODULES_JSON)
+        default = config.get('modules', [])
+        modules = config.get('user_modules', [])
+        if new_module not in modules and new_module not in default:
+            modules.append(new_module)
+            config['user_modules'] = modules
+            self.write_json_file(DEFAULT_PYTHON_MODULES_JSON, config)
 
-    @staticmethod
-    def get_modules():
-        # Import modules from conf file
-        with open(DEFAULT_PYTHON_MODULES_JSON, 'r') as file:
-            config = json.load(file)
-            modules = list(dict.fromkeys(config.get('modules', []) + config.get('user_modules', [])))
-            return modules
+    def get_modules(self):
+        config = self.load_json_file(DEFAULT_PYTHON_MODULES_JSON)
+        self.write_json_file(DEFAULT_PYTHON_MODULES_JSON, config)
+        modules = list(dict.fromkeys(config.get('modules', []) + config.get('user_modules', [])))
+        return modules
 
-    @staticmethod
-    def get_total_default_modules():
-        with open(DEFAULT_PYTHON_MODULES_JSON, 'r') as file:
-            config = json.load(file)
-            return len(dict.fromkeys(config.get('modules', [])))
+    def get_total_default_modules(self):
+        config = self.load_json_file(DEFAULT_PYTHON_MODULES_JSON)
+        return len(dict.fromkeys(config.get('modules', [])))
 
-    @staticmethod
-    def reset_modules():
-        try:
-            with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
-                config = json.load(file)
-                modules = config.get('modules', [])
-                config['user_modules'] = []
-                file.seek(0)
-                json.dump(config, file, indent=4)
-                file.truncate()
-                return len(modules)
-        except PermissionError:
-            # Handling of permissions error
-            logger.error("Error: You do not have the necessary permissions to modify the configuration file. Change the"
-                         "environment variable: IPLOT_PMODULE_PATH value")
+    def reset_modules(self):
+        config = self.load_json_file(DEFAULT_PYTHON_MODULES_JSON)
+        modules = config.get('modules', [])
+        config['user_modules'] = []
+        self.write_json_file(DEFAULT_PYTHON_MODULES_JSON, config)
+        return len(modules)
 
-    @staticmethod
-    def clear_modules(index):
-        try:
-            with open(DEFAULT_PYTHON_MODULES_JSON, 'r+') as file:
-                config = json.load(file)
-                modules = config.get('user_modules', [])
-                default_modules = config.get('modules', [])
-                valid_index = [i for i in index if i > len(default_modules) - 1]
-                result_modules = [i for j, i in enumerate(modules) if j not in valid_index]
-                config['user_modules'] = result_modules
-                file.seek(0)
-                json.dump(config, file, indent=4)
-                file.truncate()
-                return valid_index
-        except PermissionError:
-            # Handling of permissions error
-            logger.error("Error: You do not have the necessary permissions to modify the configuration file. Change the"
-                         "environment variable: IPLOT_PMODULE_PATH value")
+    def clear_modules(self, index):
+        config = self.load_json_file(DEFAULT_PYTHON_MODULES_JSON)
+        modules = list(dict.fromkeys(config.get('modules', []) + config.get('user_modules', [])))
+        default_modules = config.get('modules', [])
+        valid_index = [i for i in index if i > len(default_modules) - 1]
+        result_modules = [i for j, i in enumerate(modules) if j not in valid_index and j > len(default_modules) - 1]
+        config['user_modules'] = result_modules
+        self.write_json_file(DEFAULT_PYTHON_MODULES_JSON, config)
+        return valid_index
 
     @property
     def supported_members(self) -> dict:
