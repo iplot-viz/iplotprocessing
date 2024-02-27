@@ -190,9 +190,6 @@ class Signal:
             for result, output in zip(results, outputs):
                 if output is None:
                     result_signals[iout]._data[idx] = result
-                else:
-                    output._data[idx] = result
-                    result_signals[iout] = output
                 iout += 1
 
         return result_signals[0] if len(result_signals) == 1 else result_signals
