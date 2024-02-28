@@ -22,6 +22,9 @@ EXEC_PATH = __file__
 ROOT = os.path.dirname(EXEC_PATH)
 DEFAULT_PYTHON_MODULES_JSON = os.path.join(os.getenv('IPLOT_PMODULE_PATH', default=ROOT), 'default_modules.json')
 
+DEFAULT_MODULES = "modules"
+USER_MODULES = "user_modules"
+
 
 class Parser:
     """
@@ -58,43 +61,46 @@ class Parser:
 
             self.inject(Parser.get_member_list(ProcessingSignal))
             self.inject(Parser.get_member_list(BufferObject))
-
-            self.init_modules()
-
             self.locals = {}
             self.var_map = {}
             self._var_counter = 0
 
-    @staticmethod
-    def load_json_file(file_path):
+            self.config = {DEFAULT_MODULES: [], USER_MODULES: []}
+            self._access_to_config = True
+            self.init_modules()
+
+    def has_access_to_config(self):
+        return self._access_to_config
+
+    def load_config_from_json(self):
         # Load json configuration file
         try:
-            with open(file_path, 'r+') as file:
+            with open(DEFAULT_PYTHON_MODULES_JSON, 'r') as file:
                 config = json.load(file)
                 # Keys check
-                if "modules" not in config:
-                    config["modules"] = []
-                if "user_modules" not in config:
-                    config["user_modules"] = []
-                return config
+                if DEFAULT_MODULES in config:
+                    self.config[DEFAULT_MODULES] = config[DEFAULT_MODULES]
+                if USER_MODULES in config:
+                    self.config[USER_MODULES] = config[USER_MODULES]
 
         except (FileNotFoundError, json.JSONDecodeError):
             logger.error("The JSON file does not exist or is not in a valid format. Creating a new one...")
-            config = {"modules": [], "user_modules": []}
-            return config
+            self.write_config_to_json()
 
+    def write_config_to_json(self):
+        try:
+            # Writing to the configuration file
+            with open(DEFAULT_PYTHON_MODULES_JSON, 'w+') as file:
+                file.seek(0)
+                json.dump(self.config, file, indent=4)
+                file.truncate()
+
+            self._access_to_config = True
         except PermissionError:
             # Handling of permissions error
-            logger.error("Error: You do not have the necessary permissions to modify the configuration file. Change the"
-                         "environment variable: IPLOT_PMODULE_PATH value")
-
-    @staticmethod
-    def write_json_file(file_path, config):
-        # Writing to the configuration file
-        with open(file_path, 'r+') as file:
-            file.seek(0)
-            json.dump(config, file, indent=4)
-            file.truncate()
+            logger.error("Error: You do not have the necessary permissions to modify the configuration file. "
+                         "Change the environment variable: IPLOT_PMODULE_PATH value")
+            self._access_to_config = False
 
     def load_submodules(self, module, parent_name=""):
         self.inject(self.get_member_list(module))
@@ -137,20 +143,19 @@ class Parser:
         else:
             self.inject(self.get_member_list(loaded_module))
 
-    def prev_process(self):
+    def format_modules(self):
         # The correct format is set before starting to evaluate the modules
-        config = self.load_json_file(DEFAULT_PYTHON_MODULES_JSON)
-        list_default = list(dict.fromkeys(config.get('modules', [])))
-        list_user = list(dict.fromkeys(config.get('user_modules', [])))
+        self.load_config_from_json()
+        list_default = self.config[DEFAULT_MODULES]
+        list_user = self.config[USER_MODULES]
         user_modules = [module for module in list_user if module not in list_default]
-        config['modules'] = list_default
-        config['user_modules'] = user_modules
-        self.write_json_file(DEFAULT_PYTHON_MODULES_JSON, config)
+        self.config[USER_MODULES] = user_modules
+        self.write_config_to_json()
 
     def init_modules(self):
-        self.prev_process()
-        modules = self.get_modules()
-        for module in modules:
+        self.format_modules()
+        all_modules = self.get_modules()
+        for module in all_modules:
             try:
                 self.load_modules(module)
             except Exception as e:
@@ -158,54 +163,43 @@ class Parser:
                 self.remove_module_from_config(module)
 
     def remove_module_from_config(self, module):
-        config = self.load_json_file(DEFAULT_PYTHON_MODULES_JSON)
-        modules = config.get('modules', [])
-        user_modules = config.get('user_modules', [])
-        if module in modules:
-            while module in modules:
-                modules.remove(module)
-            config['modules'] = modules
+        default_modules = self.config[DEFAULT_MODULES]
+        user_modules = self.config.get(USER_MODULES, [])
+        if module in default_modules:
+            while module in default_modules:
+                default_modules.remove(module)
+            self.config[DEFAULT_MODULES] = default_modules
         if module in user_modules:
             while module in user_modules:
                 user_modules.remove(module)
-            config['user_modules'] = user_modules
-        self.write_json_file(DEFAULT_PYTHON_MODULES_JSON, config)
-
-    def add_module_to_config(self, new_module):
-        config = self.load_json_file(DEFAULT_PYTHON_MODULES_JSON)
-        default = config.get('modules', [])
-        modules = config.get('user_modules', [])
-        if new_module not in modules and new_module not in default:
-            modules.append(new_module)
-            config['user_modules'] = modules
-            self.write_json_file(DEFAULT_PYTHON_MODULES_JSON, config)
+            self.config[USER_MODULES] = user_modules
+        self.write_config_to_json()
 
     def get_modules(self):
-        config = self.load_json_file(DEFAULT_PYTHON_MODULES_JSON)
-        self.write_json_file(DEFAULT_PYTHON_MODULES_JSON, config)
-        modules = list(dict.fromkeys(config.get('modules', []) + config.get('user_modules', [])))
-        return modules
+        return self.config[DEFAULT_MODULES] + self.config[USER_MODULES]
+
+    def add_module_to_config(self, new_module):
+        default_modules = self.config.get(DEFAULT_MODULES, [])
+        user_modules = self.config.get(USER_MODULES, [])
+        if new_module not in user_modules and new_module not in default_modules:
+            self.config[USER_MODULES].append(new_module)
+            self.write_config_to_json()
 
     def get_total_default_modules(self):
-        config = self.load_json_file(DEFAULT_PYTHON_MODULES_JSON)
-        return len(dict.fromkeys(config.get('modules', [])))
+        return len(self.config[DEFAULT_MODULES])
 
     def reset_modules(self):
-        config = self.load_json_file(DEFAULT_PYTHON_MODULES_JSON)
-        modules = config.get('modules', [])
-        config['user_modules'] = []
-        self.write_json_file(DEFAULT_PYTHON_MODULES_JSON, config)
-        return len(modules)
+        self.config[USER_MODULES] = []
+        self.write_config_to_json()
 
     def clear_modules(self, index):
-        config = self.load_json_file(DEFAULT_PYTHON_MODULES_JSON)
-        modules = list(dict.fromkeys(config.get('modules', []) + config.get('user_modules', [])))
-        default_modules = config.get('modules', [])
-        valid_index = [i for i in index if i > len(default_modules) - 1]
-        result_modules = [i for j, i in enumerate(modules) if j not in valid_index and j > len(default_modules) - 1]
-        config['user_modules'] = result_modules
-        self.write_json_file(DEFAULT_PYTHON_MODULES_JSON, config)
-        return valid_index
+        modules = self.get_modules()
+        default_modules = self.config[DEFAULT_MODULES]
+        deleted_index = [i for i in index if i > len(default_modules) - 1]
+        result_modules = [i for j, i in enumerate(modules) if j not in deleted_index and j > len(default_modules) - 1]
+        self.config[USER_MODULES] = result_modules
+        self.write_config_to_json()
+        return deleted_index
 
     @property
     def supported_members(self) -> dict:
