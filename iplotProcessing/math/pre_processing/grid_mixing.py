@@ -42,7 +42,7 @@ def align(signals: typing.List[Signal], mode=GridAlignmentMode.UNION, kind=Inter
     num_signals = len(signals)
     indep_ids = signals[0].independent_accessors
     num_independent = len(indep_ids)
-    common_bases = [None] * num_independent
+    common_bases = [BufferObject()] * num_independent
 
     if not num_signals or not num_independent:
         return
@@ -75,7 +75,7 @@ def align(signals: typing.List[Signal], mode=GridAlignmentMode.UNION, kind=Inter
                             input_arr=f(common_bases[0]), unit=dunit)
                 elif sig.data_store[i].ndim == 2:
                     f = interp2d(sig.data_store[indep_ids[1]], sig.data_store[indep_ids[0]],
-                                 sig.data_store[i], kind=kind, fill_value='extrapolate')
+                                 sig.data_store[i], kind=kind)
                     if f:
                         dunit = sig.data_store[i].unit
                         sig.data_store[i] = BufferObject(
