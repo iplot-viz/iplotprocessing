@@ -1,4 +1,3 @@
-
 # This file helps to compute a version number in source trees obtained from
 # git-archive tarball (such as those provided by githubs download-from-tag
 # feature). Distribution tarballs (built by setup.py sdist) and build
@@ -34,7 +33,7 @@ def get_keywords() -> Dict[str, str]:
     if not mo_tag_in_git_refnames:
         mo_tag_in_git_describe = re.search(r'(\d+\.)(\d+\.)(\d+)', git_describe_output)
         if mo_tag_in_git_describe:
-            mo_describe = '(, tag: '+ git_describe_output +',,'+ git_refnames + ')'
+            mo_describe = '(, tag: ' + git_describe_output + ',,' + git_refnames + ')'
             git_refnames = mo_describe
     keywords = {"refnames": git_refnames, "full": git_full, "date": git_date}
     return keywords
@@ -75,22 +74,24 @@ HANDLERS: Dict[str, Dict[str, Callable]] = {}
 
 def register_vcs_handler(vcs: str, method: str) -> Callable:  # decorator
     """Create decorator to mark a method as the handler of a VCS."""
+
     def decorate(f: Callable) -> Callable:
         """Store f in HANDLERS[vcs][method]."""
         if vcs not in HANDLERS:
             HANDLERS[vcs] = {}
         HANDLERS[vcs][method] = f
         return f
+
     return decorate
 
 
 def run_command(
-    commands: List[str],
-    args: List[str],
-    cwd: Optional[str] = None,
-    verbose: bool = False,
-    hide_stderr: bool = False,
-    env: Optional[Dict[str, str]] = None,
+        commands: List[str],
+        args: List[str],
+        cwd: Optional[str] = None,
+        verbose: bool = False,
+        hide_stderr: bool = False,
+        env: Optional[Dict[str, str]] = None,
 ) -> Tuple[Optional[str], Optional[int]]:
     """Call the given command(s)."""
     assert isinstance(commands, list)
@@ -133,9 +134,9 @@ def run_command(
 
 
 def versions_from_parentdir(
-    parentdir_prefix: str,
-    root: str,
-    verbose: bool,
+        parentdir_prefix: str,
+        root: str,
+        verbose: bool,
 ) -> Dict[str, Any]:
     """Try to determine the version from the parent directory name.
 
@@ -190,9 +191,9 @@ def git_get_keywords(versionfile_abs: str) -> Dict[str, str]:
 
 @register_vcs_handler("git", "keywords")
 def git_versions_from_keywords(
-    keywords: Dict[str, str],
-    tag_prefix: str,
-    verbose: bool,
+        keywords: Dict[str, str],
+        tag_prefix: str,
+        verbose: bool,
 ) -> Dict[str, Any]:
     """Get version information from git keywords."""
     if "refnames" not in keywords:
@@ -258,10 +259,10 @@ def git_versions_from_keywords(
 
 @register_vcs_handler("git", "pieces_from_vcs")
 def git_pieces_from_vcs(
-    tag_prefix: str,
-    root: str,
-    verbose: bool,
-    runner: Callable = run_command
+        tag_prefix: str,
+        root: str,
+        verbose: bool,
+        runner: Callable = run_command
 ) -> Dict[str, Any]:
     """Get version from 'git describe' in the root of the source tree.
 

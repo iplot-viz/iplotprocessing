@@ -6,6 +6,7 @@ import typing
 from iplotProcessing.core.bobject import BufferObject
 from iplotProcessing.math.expressions import augmented, binary, reflected, unary
 from iplotLogging import setupLogger
+from typing import Any, Dict, List
 
 logger = setupLogger.get_logger(__name__, "INFO")
 
@@ -62,15 +63,15 @@ class Signal:
         }
 
     @property
-    def alias_map(self):
+    def alias_map(self) -> Dict[str, Any]:
         return self._alias_map
 
     @property
-    def data_store(self):
+    def data_store(self) -> List[BufferObject]:
         return self._data
 
     @property
-    def dependent_accessors(self):
+    def dependent_accessors(self) -> List[int]:
         accessors = []
         for v in self._alias_map.values():
             idx = v.get('idx')
@@ -79,7 +80,7 @@ class Signal:
         return accessors
 
     @property
-    def independent_accessors(self):
+    def independent_accessors(self) -> List[int]:
         accessors = []
         for v in self._alias_map.values():
             idx = v.get('idx')
@@ -88,7 +89,7 @@ class Signal:
         return accessors
 
     @property
-    def rank(self):
+    def rank(self) -> int:
         rank = 0
         for i in self.dependent_accessors:
             rank += self._data[i].ndim
@@ -142,7 +143,7 @@ class Signal:
     __abs__ = unary.absolute
     __invert__ = unary.invert
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> BufferObject:
         if '_alias_map' not in self.__dict__ or name not in self.__dict__['_alias_map']:
             try:
                 return self.__dict__[name]
@@ -190,9 +191,6 @@ class Signal:
             for result, output in zip(results, outputs):
                 if output is None:
                     result_signals[iout]._data[idx] = result
-                else:
-                    output._data[idx] = result
-                    result_signals[iout] = output
                 iout += 1
 
         return result_signals[0] if len(result_signals) == 1 else result_signals

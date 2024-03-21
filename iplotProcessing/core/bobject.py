@@ -21,6 +21,7 @@ class BufferObject(np.ndarray):
         return obj
 
     def __init__(self, input_arr=None, unit: str = '', shape=None, **kwargs) -> None:
+        super().__init__(**kwargs)
         self.unit = unit
 
     def __array_finalize__(self, obj):
@@ -36,10 +37,12 @@ class BufferObject(np.ndarray):
 
         args = ((i.view(np.ndarray) if isinstance(i, BufferObject) else i)
                 for i in inputs)
+        """
         try:
             self_max_val = max(self)
         except ValueError:
             self_max_val = None
+        """
 
         outputs = kwargs.pop('out', None)
         if outputs:
