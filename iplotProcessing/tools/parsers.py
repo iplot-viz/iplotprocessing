@@ -346,3 +346,16 @@ class Parser:
                 raise InvalidVariable(self.var_map, self.locals)
 
         return self
+
+    @staticmethod
+    def get_var_expression(expr: str):
+        import re
+        matches = re.findall(r'\$\{.*?\}', expr)
+        variables = []
+        for exp in matches:
+            marker_in_pos = exp.find(Parser.marker_in)
+            marker_out_pos = exp.find(Parser.marker_out)
+            var = exp[marker_in_pos + len(Parser.marker_in):marker_out_pos]
+            variables.append(var)
+
+        return variables
