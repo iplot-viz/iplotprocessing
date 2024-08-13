@@ -258,8 +258,7 @@ class Parser:
         marker_out_pos = [m.start() for m in re.finditer('}', expr)]
 
         if len(marker_in_pos) != len(marker_out_pos):
-            logger.error(
-                "Invalid expression %s, variable should be ${varname} ", expr)
+            logger.error(f"Invalid expression {expr}, variable should be ${{varname}}")
             return False
 
         self.marker_in_count = len(marker_in_pos)
@@ -271,14 +270,13 @@ class Parser:
 
         return True
 
-    def set_expression(self, expr: str) -> ParserT:
-        if expr.find(self.marker_in) == -1 and expr.find(self.marker_out) == -1:
+    def set_expression(self, expr: str, is_expression: bool = False) -> ParserT:
+        if expr.find(self.marker_in) == -1 and expr.find(self.marker_out) == -1 and not is_expression:
             self.expression = expr
             self.is_valid = False
         else:
             if not self.is_syntax_valid(expr):
-                raise InvalidExpression(
-                    f"Invalid expression {expr}, variable should be '${{varname1}}  ${{varname2}}'")
+                raise InvalidExpression(f"Invalid expression {expr}, variable should be '${{varname1}}  ${{varname2}}'")
             else:
                 self.expression = self.replace_var(expr)
                 self.is_valid = True
@@ -293,8 +291,7 @@ class Parser:
 
                 try:
                     self.validate_pre_compile()
-                    self._compiled_obj = compile(
-                        self.expression, "<string>", "eval")
+                    self._compiled_obj = compile(self.expression, "<string>", "eval")
                     self.validate_post_compile()
                 except SyntaxError as se:
                     raise InvalidExpression(f"Syntax error {se}")
