@@ -71,6 +71,10 @@ class Signal:
         return self._data
 
     @property
+    def time(self) -> BufferObject:
+        return self._data_store[0]
+
+    @property
     def dependent_accessors(self) -> List[int]:
         accessors = []
         for v in self._alias_map.values():
