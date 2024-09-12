@@ -1,8 +1,8 @@
 {
-    "modules": [],
-    "user_modules": [
+    "modules": [
         "numpy.*",
         "numpy as np",
         "scipy.*"
-    ]
+    ],
+    "user_modules": []
 }
