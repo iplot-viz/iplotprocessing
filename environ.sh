@@ -31,27 +31,27 @@ echo "Toolchain: $toolchain"
 try module purge
 
 # Other IDV components
-try module load iplotLogging/0.0.0-GCCcore-10.2.0
+try module load iplotLogging
 
 # Testing/Coverage requirements
-try module load coverage/5.5-GCCcore-10.2.0
+try module load coverage/7.4.4-GCCcore-13.2.0
 
 case $toolchain in
 
   "foss")
     # Array processing
-    try module load SciPy-bundle/2020.11-foss-2020b
+    try module load SciPy-bundle/2023.11-gfbf-2023b
     ;;
   "intel")
     # Array processing
-    try module load SciPy-bundle/2020.11-intel-2020b
+    try module load SciPy-bundle/2023.12-iimkl-2023b
     ;;
    *)
     echo "Unknown toolchain $toolchain"
     ;;
 esac
 
-try module list -t 2>&1
+try module -t list 2>&1 | sort
 
 export HOME=$PWD
 echo "HOME was set to $HOME"
