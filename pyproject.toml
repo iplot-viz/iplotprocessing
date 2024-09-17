@@ -2,5 +2,12 @@
 requires = ["setuptools>=42.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.versioneer]
+VCS = "git"
+style = "pep440"
+versionfile_source = "iplotProcessing/_version.py"
+versionfile_build = "iplotProcessing/_version.py"
+tag_prefix = ""
+parentdir_prefix = ""
 
 
