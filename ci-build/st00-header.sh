@@ -10,8 +10,13 @@ get_abs_filename()
   fi
 }
 
-# Set up environment for compilation
-source /usr/share/Modules/init/sh
+# Set up environment such that module files can be loaded
+if test -f /etc/profile.d/modules.sh ;then
+. /etc/profile.d/modules.sh
+else
+. /usr/share/Modules/init/sh
+fi
+module purge
 module use /work/imas/etc/modules/all
 
 source environ.sh $*
