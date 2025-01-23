@@ -148,9 +148,11 @@ class Parser:
         self.load_config_from_json()
         list_default = self.config[DEFAULT_MODULES]
         list_user = self.config[USER_MODULES]
-        user_modules = [module for module in list_user if module not in list_default]
-        self.config[USER_MODULES] = user_modules
-        self.write_config_to_json()
+        # Before rewriting the user modules, check if the formatting has to be done
+        if bool(set(list_default) & set(list_user)):
+            user_modules = [module for module in list_user if module not in list_default]
+            self.config[USER_MODULES] = user_modules
+            self.write_config_to_json()
 
     def init_modules(self):
         self.format_modules()
