@@ -2,6 +2,41 @@
 requires = ["setuptools>=42.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "iplotProcessing"
+description = "Data processing for applications using IDSs or CBS"
+authors = [{ name = "Panchumarti Jaswant EXT", email = "jaswant.panchumarti@iter.org" }]
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">= 3.8"
+license = { text = "MIT" }
+keywords = ["Data Processing", "IMAS", "CODAC"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    # "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "iplotLogging >= 0.2.1",
+    "numpy >= 1.19.0",
+    "scipy >= 1.5.4"
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://git.iter.org/scm/vis/processing.git"
+
+[project.scripts]
+iprocapp = "iplotProcessing.example.__main__:main"
+
+[tool.setuptools]
+packages = ["iplotProcessing"]
+package-dir = { "" = "." }
+
+[tool.setuptools.package-data]
+"iplotProcessing.example" = ["example_inp.csv"]
+"iplotProcessing.core" = ["blueprint.json"]
+"iplotProcessing.tools" = ["default_modules.json"]
+
 [tool.versioneer]
 VCS = "git"
 style = "pep440"
