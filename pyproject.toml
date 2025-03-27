@@ -5,9 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "iplotProcessing"
 description = "Data processing for applications using IDSs or CBS"
-authors = [{ name = "Panchumarti Jaswant EXT", email = "jaswant.panchumarti@iter.org" }]
+authors = [
+    { name = "Pablo Martin Villares", email = "pmartin@minsait.com" },
+    { name = "Jhon Steeven Cabanilla Alvarado", email = "jscabanilla@minsait.com" },
+]
 readme = { file = "README.md", content-type = "text/markdown" }
-requires-python = ">= 3.8"
+requires-python = ">= 3.11"
 license = { text = "MIT" }
 keywords = ["Data Processing", "IMAS", "CODAC"]
 classifiers = [
