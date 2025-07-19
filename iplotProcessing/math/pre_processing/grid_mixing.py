@@ -34,7 +34,8 @@ def _get_common_num_dims(arrays: typing.List[np.ndarray]) -> int:
     return ndim
 
 
-def align(signals: typing.List[Signal], mode=GridAlignmentMode.UNION, kind=InterpolationKind.PREVIOUS):
+def align(signals: typing.List[Signal], curr_signal: Signal, mode=GridAlignmentMode.UNION,
+          kind=InterpolationKind.PREVIOUS):
     # all signals must have same alias_map.
     if not _check_alias_map_equal(signals):
         return
@@ -43,6 +44,7 @@ def align(signals: typing.List[Signal], mode=GridAlignmentMode.UNION, kind=Inter
     indep_ids = signals[0].independent_accessors
     num_independent = len(indep_ids)
     common_bases = [BufferObject()] * num_independent
+    dict_result = {}
 
     if not num_signals or not num_independent:
         return
@@ -71,15 +73,17 @@ def align(signals: typing.List[Signal], mode=GridAlignmentMode.UNION, kind=Inter
                         sig.data_store[indep_ids[0]], sig.data_store[i], kind=kind, fill_value='extrapolate')
                     if f:
                         dunit = sig.data_store[i].unit
-                        sig.data_store[i] = BufferObject(
-                            input_arr=f(common_bases[0]), unit=dunit)
+                        y_data = BufferObject(input_arr=f(common_bases[0]), unit=dunit)
+                        if sig.label == curr_signal.label:
+                            sig.data_store[i] = y_data
+                        key = sig.label if sig.label != curr_signal.label else 'self'
+                        dict_result[key] = {"data": y_data}
                 elif sig.data_store[i].ndim == 2:
                     f = interp2d(sig.data_store[indep_ids[1]], sig.data_store[indep_ids[0]],
                                  sig.data_store[i], kind=kind)
                     if f:
                         dunit = sig.data_store[i].unit
-                        sig.data_store[i] = BufferObject(
-                            input_arr=f(common_bases[1], common_bases[0]), unit=dunit)
+                        sig.data_store[i] = BufferObject(input_arr=f(common_bases[1], common_bases[0]), unit=dunit)
                 elif sig.data_store[i].ndim > 2:
                     indep_vectors = [sig.data_store[i] for i in indep_ids]
                     points = list(zip(*indep_vectors))
@@ -89,14 +93,18 @@ def align(signals: typing.List[Signal], mode=GridAlignmentMode.UNION, kind=Inter
                         dunit = sig.data_store[i].unit
                         new_bases = reversed(common_bases)
                         new_bases = np.meshgrid(*new_bases)
-                        sig.data_store[i] = BufferObject(
-                            input_arr=f(*new_bases), unit=dunit)
+                        sig.data_store[i] = BufferObject(input_arr=f(*new_bases), unit=dunit)
 
             for i in indep_ids:
-                sig.data_store[i] = common_bases[i]
+                if sig.label == curr_signal.label:
+                    sig.data_store[i] = common_bases[i]
+                key = sig.label if sig.label != curr_signal.label else 'self'
+                dict_result[key]["time"] = common_bases[i]
 
         except AttributeError:
             continue
+
+    return dict_result
 
 
 def get_finest_time_unit(arrays: typing.List[BufferObject]) -> str:
