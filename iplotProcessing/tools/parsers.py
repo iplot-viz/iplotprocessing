@@ -26,6 +26,15 @@ DEFAULT_MODULES = "modules"
 USER_MODULES = "user_modules"
 
 
+class SignalProxy(ProcessingSignal):
+
+    def __init__(self, dict_result):
+        super().__init__()
+
+        self.data_store[0] = dict_result["time"]
+        self.data_store[1] = dict_result["data"]
+
+
 class Parser:
     """
         This class has been designed following the Singleton design pattern in order to guarantee the existence of a
@@ -326,18 +335,25 @@ class Parser:
     def get_member_list(parent):
         return dict(getmembers(parent))
 
-    def substitute_var(self, val_map) -> ParserT:
+    def substitute_var(self, val_map, dict_result=None) -> ParserT:
         for k in val_map.keys():
             if self.var_map.get(k):
-                self.locals[self.var_map[k]] = val_map[k]
+                if not dict_result:
+                    self.locals[self.var_map[k]] = val_map[k]
+                else:
+                    # Modified
+                    # Check for self in case if self.data_store[2]
+                    if k not in dict_result.keys():
+                        self.locals[self.var_map[k]] = val_map[k]
+                    else:
+                        self.locals[self.var_map[k]] = SignalProxy(dict_result[k])
         return self
 
     def eval_expr(self) -> ParserT:
         if self._compiled_obj is not None:
             try:
                 # logger.debug("eval exception ")
-                self.result = eval(self._compiled_obj,
-                                   self.supported_members, self.locals)
+                self.result = eval(self._compiled_obj, self.supported_members, self.locals)
             except ValueError as ve:
                 raise InvalidExpression(f"Value error {ve}")
             except TypeError as te:
