@@ -28,11 +28,11 @@ USER_MODULES = "user_modules"
 
 class SignalProxy(ProcessingSignal):
 
-    def __init__(self, dict_result):
+    def __init__(self, dict_result=None):
         super().__init__()
-
-        self.data_store[0] = dict_result["time"]
-        self.data_store[1] = dict_result["data"]
+        if dict_result is not None:
+            self.data_store[0] = dict_result["time"]
+            self.data_store[1] = dict_result["data"]
 
 
 class Parser:
