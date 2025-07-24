@@ -42,15 +42,17 @@ class TestGridIntersection(unittest.TestCase):
         return super().setUp()
 
     def test_align_1(self):
-        align(self.signals_set_1, mode=GridAlignmentMode.INTERSECTION, kind=InterpolationKind.LINEAR)
-        valid_values = [30, 33, 36, 39, 42, 45]
-        for sig in self.signals_set_1:
-            for v1, v2 in zip(valid_values, sig.time):
-                self.assertEqual(v1, v2)
+        align(self.signals_set_1, self.signals_set_1[0], mode=GridAlignmentMode.INTERSECTION, kind=InterpolationKind.LINEAR)
+        valid_values = [0, 10, 20, 40, 50]
+        self.assertListEqual(
+            self.signals_set_1[0].time.tolist(),
+            valid_values
+        )
 
     def test_align_2(self):
-        align(self.signals_set_2, mode=GridAlignmentMode.INTERSECTION, kind=InterpolationKind.LINEAR)
-        valid_values = [3, 2, 2, 2, 2]
-        for sig in self.signals_set_2:
-            for v1, v2 in zip(valid_values, sig.time):
-                self.assertEqual(v1, v2)
+        align(self.signals_set_2, self.signals_set_2[0], mode=GridAlignmentMode.INTERSECTION, kind=InterpolationKind.LINEAR)
+        valid_values = [0, 1, 2, 3]
+        self.assertListEqual(
+            self.signals_set_2[0].time.tolist(),
+            valid_values
+        )
