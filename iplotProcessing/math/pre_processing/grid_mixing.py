@@ -76,7 +76,7 @@ def align(signals: typing.List[Signal], curr_signal: Signal, mode=GridAlignmentM
                         y_data = BufferObject(input_arr=f(common_bases[0]), unit=dunit)
                         if sig.label == curr_signal.label:
                             sig.data_store[i] = y_data
-                        key = sig.label if sig.label != curr_signal.label else 'self'
+                        key = sig.label.split(":")[0] if sig.label != curr_signal.label else 'self'
                         dict_result[key] = {"data": y_data}
                 elif sig.data_store[i].ndim == 2:
                     f = interp2d(sig.data_store[indep_ids[1]], sig.data_store[indep_ids[0]],
@@ -98,7 +98,7 @@ def align(signals: typing.List[Signal], curr_signal: Signal, mode=GridAlignmentM
             for i in indep_ids:
                 if sig.label == curr_signal.label:
                     sig.data_store[i] = common_bases[i]
-                key = sig.label if sig.label != curr_signal.label else 'self'
+                key = sig.label.split(":")[0] if sig.label != curr_signal.label else 'self'
                 dict_result[key]["time"] = common_bases[i]
 
         except AttributeError:
