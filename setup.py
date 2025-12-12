@@ -19,7 +19,7 @@ setuptools.setup(
     author_email="jaswant.panchumarti@iter.org",
     description="Data processing for applications using IDSs or CBS",
     long_description=long_description,
-    url="https://git.iter.org/scm/vis/processing.git",
+    url="https://github.com/iplot-viz/iplotprocessing.git",
     project_urls={
         "Bug Tracker": "https://jira.iter.org/issues/?jql=project+%3D+IDV+AND+component+%3D+Processing",
     },
