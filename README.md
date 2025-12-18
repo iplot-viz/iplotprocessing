@@ -18,7 +18,7 @@ Install the package from PyPi:
 You can also install optional dependencies (e.g. test):
 
   ```bash
-  pip install "iplotDataAccess[test]"
+  pip install "iplotProcessing[test]"
   ```
 
 ## Structure
