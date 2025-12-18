@@ -6,12 +6,12 @@ build-backend = "setuptools.build_meta"
 name = "iplotProcessing"
 description = "Data processing for applications using IDSs or CBS"
 authors = [
-    { name = "Lana Abadie", email = "lana.abadie@iter.org" },
+    { name = "ITER Organization", email = "jscabanilla@minsait.com" },
 ]
 maintainers = [
     { name = "Jhon Steeven Cabanilla Alvarado", email = "jscabanilla@minsait.com" },
     { name = "Pablo Martin Villares", email = "pmartin@minsait.com" },
-    { name = "Mario Gómez Ballesteros", email = "mgomezb@minsait.com" },
+    { name = "Mario Gomez Ballesteros", email = "mgomezb@minsait.com" },
 ]
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">= 3.9"
