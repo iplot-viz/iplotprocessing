@@ -1,6 +1,52 @@
 [build-system]
-requires = ["setuptools>=42.0", "wheel"]
+requires = ["setuptools>=42.0", "wheel", "versioneer[toml]"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "iplotProcessing"
+description = "Data processing for applications using IDSs or CBS"
+authors = [
+    { name = "ITER Organization", email = "jscabanilla@minsait.com" },
+]
+maintainers = [
+    { name = "Jhon Steeven Cabanilla Alvarado", email = "jscabanilla@minsait.com" },
+    { name = "Pablo Martin Villares", email = "pmartin@minsait.com" },
+    { name = "Mario Gomez Ballesteros", email = "mgomezb@minsait.com" },
+]
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">= 3.9"
+license = { text = "MIT" }
+keywords = ["Data", "Processing", "Preprocessing", "IMAS", "CODAC"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "iplotLogging >= 1.2.0",
+    "numpy >= 1.19.5",
+    "scipy >= 1.5.4"
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+test = ["pytest >= 6.0"]
+
+[project.urls]
+Homepage = "https://github.com/iplot-viz/iplotprocessing"
+Repository = "https://github.com/iplot-viz/iplotprocessing.git"
+Issues = "https://github.com/iplot-viz/iplotprocessing/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["iplotProcessing*"]
+
+[tool.setuptools.package-data]
+"iplotProcessing.tools" = ["default_modules.json"]
+
+[tool.pytest.ini_options]
+addopts = "-rA -s -v"
+testpaths = "iplotProcessing"
 
 [tool.versioneer]
 VCS = "git"

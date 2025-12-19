@@ -1,6 +1,3 @@
-# Description: Tests the parser tool
-# Author: Jaswant Sai Panchumarti
-
 import unittest
 import numpy as np
 from iplotProcessing.common.errors import InvalidExpression
@@ -32,7 +29,7 @@ class TestExpressionParsing(unittest.TestCase):
                           "import sys, os\nif sys.platform == ${linux}:\n\t os.system('ls')")
 
     def test_eval_simple(self) -> None:
-        expr = "sin(${x})"
+        expr = "np.sin(${x})"
         subst = {"x": 3.141592653589793 * 0.5}
 
         self.parser.set_expression(expr)
@@ -42,7 +39,7 @@ class TestExpressionParsing(unittest.TestCase):
         self.assertAlmostEqual(self.parser.result, 1.)
 
     def test_eval_complex(self) -> None:
-        expr = "sin(${l}) + cos(${m}) + ${n}"
+        expr = "np.sin(${l}) + np.cos(${m}) + ${n}"
         subst = {"l": np.arange(0, 4, dtype=np.float64),
                  "m": np.arange(0, 40, 10, dtype=np.float64),
                  "n": 10.0}
