@@ -48,6 +48,12 @@ class Parser:
     prefix = "key"
     date_time_unit_pattern = rf"(\d+)([{''.join(DATE_TIME)}]\b|{'|'.join(PRECISE_TIME)})"
 
+    pattern = re.compile(
+        r'^\s*(?:from\s+(?P<module_path>[a-zA-Z0-9_.]*)\s+)?'  # from XX
+        r'(?:import\s+)?(?P<module>[a-zA-Z0-9_.*]*)'  # import YY
+        r'(?:\s+as\s+(?P<alias>[a-zA-Z0-9_.]*))?\s*$'  # as alias
+    )
+
     _instance = None
 
     def __new__(cls):
@@ -123,27 +129,32 @@ class Parser:
                 self.inject(self.get_member_list(obj))
 
     def load_modules(self, new_module):
-        if new_module == "":
-            return
+        match = self.pattern.match(new_module)
+        if not match:
+            raise ValueError(f"Invalid import syntax: '{new_module}'")
 
-        alias = None
+        data = match.groupdict()
+        module_path = data['module_path']
+        module = data['module']
+        alias = data['alias']
         recursive = False
-        # Check new module
-        if ' as ' in new_module:
-            module_parts = new_module.split(' as ')
-            module_name = module_parts[0]
-            alias = module_parts[1]
+
+        # Build module name
+        if not module_path:
+            module_name = module
         else:
-            module_parts = new_module.split('.')
-            if module_parts[-1] == '*':
-                recursive = True
-                module_name = '.'.join(module_parts[:-1])
-            else:
-                module_name = new_module
+            module_name = '.'.join([module_path, module])
+
+        # Handle wildcard import
+        module_parts = module_name.split('.')
+        if module_parts[-1] == '*':
+            recursive = True
+            module_name = '.'.join(module_parts[:-1])
 
         loaded_module = importlib.import_module(module_name)
-
         self.inject({module_name: loaded_module})
+
+        # Inject alias if it is set
         if alias:
             self.inject({alias: loaded_module})
 
@@ -188,6 +199,20 @@ class Parser:
 
     def get_modules(self):
         return self.config[DEFAULT_MODULES] + self.config[USER_MODULES]
+
+    def get_modules_names(self):
+        module_list = self.config[DEFAULT_MODULES] + self.config[USER_MODULES]
+        result = []
+        for module in module_list:
+            match = self.pattern.match(module)
+            data = match.groupdict()
+            module_path = data['module_path']
+            module_name = data['module']
+            if module_path:
+                module_name = '.'.join([module_path, module_name])
+            result.append(module_name)
+
+        return result
 
     def add_module_to_config(self, new_module):
         default_modules = self.config.get(DEFAULT_MODULES, [])
