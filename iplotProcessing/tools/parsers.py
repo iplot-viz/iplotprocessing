@@ -259,12 +259,19 @@ class Parser:
             marker_in_pos = new_expr.find(self.marker_in)
             marker_out_pos = new_expr.find(self.marker_out)
             var = new_expr[marker_in_pos + len(self.marker_in):marker_out_pos]
+            check = new_expr[marker_out_pos+1:]
+            add_data = False
 
             if var not in self.var_map.keys():
+                if not (check.startswith('.data') or check.startswith('.time')):
+                    add_data = True
+
                 self.var_map[var] = self.prefix + str(self._var_counter)
                 self._var_counter = self._var_counter + 1
                 match = self.marker_in + var + self.marker_out
                 replc = self.var_map[var]
+                if add_data:
+                    replc += '.data'
                 new_expr = new_expr.replace(match, replc)
                 logger.debug(f"new_expr = {new_expr} and new_key = {var}")
 
