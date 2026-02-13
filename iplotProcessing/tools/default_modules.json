@@ -1,6 +1,5 @@
 {
     "modules": [
-        "numpy.*",
         "numpy as np",
         "scipy.*"
     ],
