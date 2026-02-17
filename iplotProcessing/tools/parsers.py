@@ -28,11 +28,20 @@ USER_MODULES = "user_modules"
 
 class SignalProxy(ProcessingSignal):
 
-    def __init__(self, dict_result=None):
+    def __init__(self, dict_result=None, env_alias_map=None, envelope: bool = False):
         super().__init__()
         if dict_result is not None:
-            self.data_store[0] = dict_result["time"]
-            self.data_store[1] = dict_result["data"]
+            if envelope:
+                self.alias_map.clear()
+                self.alias_map.update(env_alias_map)
+                self.data_store.clear()
+                self.data_store.append(dict_result["time"])
+                self.data_store.append(dict_result["dmin"])
+                self.data_store.append(dict_result["dmax"])
+                self.data_store.append(dict_result["davg"])
+            else:
+                self.data_store[0] = dict_result["time"]
+                self.data_store[1] = dict_result["data"]
 
 
 class Parser:
@@ -158,7 +167,7 @@ class Parser:
         if alias:
             self.inject({alias: loaded_module})
 
-        if recursive:
+        if recursive or (not module_path and module):
             self.load_submodules(loaded_module, module_name)
         else:
             self.inject(self.get_member_list(loaded_module))
@@ -247,7 +256,7 @@ class Parser:
             self._supported_member_names.add(k)
         return self
 
-    def replace_var(self, expr: str) -> str:
+    def replace_var(self, expr: str, envelope: bool = False, idx: int = None) -> str:
         new_expr = expr
         self.var_map = {}
         # protect the code against infinite loop in case of...
@@ -259,11 +268,11 @@ class Parser:
             marker_in_pos = new_expr.find(self.marker_in)
             marker_out_pos = new_expr.find(self.marker_out)
             var = new_expr[marker_in_pos + len(self.marker_in):marker_out_pos]
-            check = new_expr[marker_out_pos+1:]
+            check = new_expr[marker_out_pos + 1:]
             add_data = False
 
             if var not in self.var_map.keys():
-                if not (check.startswith('.data') or check.startswith('.time')):
+                if not check.startswith(('.data', '.time', '.dmin', '.dmax', '.davg')):
                     add_data = True
 
                 self.var_map[var] = self.prefix + str(self._var_counter)
@@ -271,7 +280,15 @@ class Parser:
                 match = self.marker_in + var + self.marker_out
                 replc = self.var_map[var]
                 if add_data:
-                    replc += '.data'
+                    if envelope:
+                        if idx == 1:
+                            replc += '.dmin'
+                        elif idx == 2:
+                            replc += '.dmax'
+                        else:
+                            replc += '.davg'
+                    else:
+                        replc += '.data'
                 new_expr = new_expr.replace(match, replc)
                 logger.debug(f"new_expr = {new_expr} and new_key = {var}")
 
@@ -313,7 +330,8 @@ class Parser:
 
         return True
 
-    def set_expression(self, expr: str, is_expression: bool = False) -> ParserT:
+    def set_expression(self, expr: str, is_expression: bool = False, envelope: bool = False,
+                       idx: int = None) -> ParserT:
         if expr.find(self.marker_in) == -1 and expr.find(self.marker_out) == -1 and not is_expression:
             self.expression = expr
             self.is_valid = False
@@ -321,7 +339,7 @@ class Parser:
             if not self.is_syntax_valid(expr):
                 raise InvalidExpression(f"Invalid expression {expr}, variable should be '${{varname1}}  ${{varname2}}'")
             else:
-                self.expression = self.replace_var(expr)
+                self.expression = self.replace_var(expr, envelope, idx)
                 self.is_valid = True
 
                 # parse time vector math
@@ -367,7 +385,7 @@ class Parser:
     def get_member_list(parent):
         return dict(getmembers(parent))
 
-    def substitute_var(self, val_map, dict_result=None) -> ParserT:
+    def substitute_var(self, val_map, dict_result=None, env_alias_map=None, envelope: bool = False) -> ParserT:
         for k in val_map.keys():
             if self.var_map.get(k):
                 if not dict_result:
@@ -378,7 +396,7 @@ class Parser:
                     if k not in dict_result.keys():
                         self.locals[self.var_map[k]] = val_map[k]
                     else:
-                        self.locals[self.var_map[k]] = SignalProxy(dict_result[k])
+                        self.locals[self.var_map[k]] = SignalProxy(dict_result[k], env_alias_map, envelope)
         return self
 
     def eval_expr(self) -> ParserT:
