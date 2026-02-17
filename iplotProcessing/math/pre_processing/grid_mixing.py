@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from scipy.interpolate import interp1d, interp2d
 import numpy as np
 import typing
@@ -44,7 +46,7 @@ def align(signals: typing.List[Signal], curr_signal: Signal, mode=GridAlignmentM
     indep_ids = signals[0].independent_accessors
     num_independent = len(indep_ids)
     common_bases = [BufferObject()] * num_independent
-    dict_result = {}
+    dict_result = defaultdict(dict)
 
     if not num_signals or not num_independent:
         return
@@ -77,7 +79,10 @@ def align(signals: typing.List[Signal], curr_signal: Signal, mode=GridAlignmentM
                         if sig.label == curr_signal.label:
                             sig.data_store[i] = y_data
                         key = sig.label.split(":")[0] if sig.label != curr_signal.label else 'self'
-                        dict_result[key] = {"data": y_data}
+                        if sig.envelope:
+                            dict_result[key][list(sig.alias_map.keys())[i]] = y_data
+                        else:
+                            dict_result[key]["data"] = y_data
                 elif sig.data_store[i].ndim == 2:
                     f = interp2d(sig.data_store[indep_ids[1]], sig.data_store[indep_ids[0]],
                                  sig.data_store[i], kind=kind)
