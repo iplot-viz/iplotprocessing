@@ -85,6 +85,8 @@ class Parser:
 
             self.inject(Parser.get_member_list(ProcessingSignal))
             self.inject(Parser.get_member_list(BufferObject))
+            self.inject(Parser.add_alias_map_envelope())
+            self.inject(Parser.add_alias_map_contour())
             self.locals = {}
             self.var_map = {}
             self._var_counter = 0
@@ -384,6 +386,27 @@ class Parser:
     @staticmethod
     def get_member_list(parent):
         return dict(getmembers(parent))
+
+    @staticmethod
+    def add_alias_map_envelope():
+        alias_map = {
+            'time': {'idx': 0, 'independent': True},
+            'dmin': {'idx': 1},
+            'dmax': {'idx': 2},
+            'davg': {'idx': 3}
+        }
+
+        return alias_map
+
+    @staticmethod
+    def add_alias_map_contour():
+        alias_map = {
+            'r': {'idx': 0, 'independent': True},
+            'z': {'idx': 1, 'independent': True},
+            'psi': {'idx': 2}
+        }
+
+        return alias_map
 
     def substitute_var(self, val_map, dict_result=None, env_alias_map=None, envelope: bool = False) -> ParserT:
         for k in val_map.keys():
