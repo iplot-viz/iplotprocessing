@@ -42,12 +42,14 @@ class Signal:
         signal.alias_map = {
                         'time': {'idx': 0, 'independent': True},
                         'dmin': {'idx': 1},
-                        'dmax': {'idx': 2}
+                        'dmax': {'idx': 2},
+                        'davg': {'idx': 3}
                     }
         then,
         signal.time -> signal.data_store[0]
         signal.dmin -> signal.data_store[1]
         signal.dmax -> signal.data_store[2]
+        signal.davg -> signal.data_store[3]
 
     Warning:
         You can only use the keys of the alias map to 'get' the values. You should not use those for setting the data.
