@@ -24,7 +24,7 @@ classifiers = [
 ]
 dependencies = [
     "iplotLogging >= 1.2.0",
-    "numpy >= 1.19.5, <= 2.3.1",
+    "numpy >= 1.19.5",
     "scipy >= 1.5.4"
 ]
 dynamic = ["version"]

@@ -12,7 +12,7 @@ from iplotProcessing.core import Signal, BufferObject
 
 from iplotLogging import setupLogger
 
-from scipy.interpolate.interpnd import LinearNDInterpolator
+from scipy.interpolate import LinearNDInterpolator
 
 logger = setupLogger.get_logger(__name__, "INFO")
 
