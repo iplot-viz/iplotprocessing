@@ -412,7 +412,7 @@ class Parser:
         for k in val_map.keys():
             if self.var_map.get(k):
                 if not dict_result:
-                    self.locals[self.var_map[k]] = val_map[k]
+                    self.locals[self.var_map[k]] = SignalProxy({"time": val_map[k], "data": val_map[k]})
                 else:
                     # Modified
                     # Check for self in case if self.data_store[2]
