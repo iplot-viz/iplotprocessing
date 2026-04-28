@@ -30,7 +30,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
-test = ["pytest >= 6.0"]
+test = ["pytest >= 6.0", "pytest-cov"]
 
 [project.urls]
 Homepage = "https://github.com/iplot-viz/iplotprocessing"
@@ -46,7 +46,16 @@ include = ["iplotProcessing*"]
 
 [tool.pytest.ini_options]
 addopts = "-rA -s -v"
-testpaths = "iplotProcessing"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+omit = [
+    "iplotProcessing/_version.py",
+    "iplotProcessing/math/compute/*",
+    "iplotProcessing/math/pre_processing/binning.py",
+    "iplotProcessing/math/pre_processing/sampling.py",
+    "iplotProcessing/math/pre_processing/smoothing.py",
+]
 
 [tool.versioneer]
 VCS = "git"
