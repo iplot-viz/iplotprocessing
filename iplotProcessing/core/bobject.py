@@ -21,7 +21,8 @@ class BufferObject(np.ndarray):
         return obj
 
     def __init__(self, input_arr=None, unit: str = '', shape=None, **kwargs) -> None:
-        super().__init__(**kwargs)
+        # Construction kwargs (dtype, buffer, etc.) are consumed by __new__; ndarray.__init__ takes no kwargs.
+        super().__init__()
         self.unit = unit
 
     def __array_finalize__(self, obj):
