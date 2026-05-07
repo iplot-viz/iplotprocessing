@@ -61,13 +61,10 @@ class TestBitwise:
         a = BufferObject(input_arr=[1, 2, 3])
         np.testing.assert_array_equal(augmented.lshift(a, 1), [2, 4, 6])
 
-    def test_rshift_is_broken_in_production(self):
-        # NOTE: augmented.rshift currently calls obj.__rshift____ (four trailing underscores)
-        # which raises AttributeError. This test documents the broken state — do not fix
-        # without a coordinated change. See: iplotProcessing/math/expressions/augmented.py:56
+    @pytest.mark.xfail(strict=True, reason="augmented.rshift typo __rshift____ at augmented.py:56")
+    def test_rshift(self):
         a = BufferObject(input_arr=[4, 8, 16])
-        with pytest.raises(AttributeError):
-            augmented.rshift(a, 1)
+        np.testing.assert_array_equal(augmented.rshift(a, 1), [2, 4, 8])
 
 
 class TestLogical:

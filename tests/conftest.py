@@ -28,7 +28,10 @@ def isolated_parser_config(tmp_path, monkeypatch, reset_parser_singleton):
 
     from iplotProcessing.tools import parsers as parsers_mod
     importlib.reload(parsers_mod)
-    return parsers_mod.Parser()
+    yield parsers_mod.Parser()
+    # Rebind DEFAULT_PYTHON_MODULES_JSON to ROOT now that monkeypatch has
+    # cleared IPLOT_PMODULE_PATH; otherwise it stays pinned to a deleted tmp_path.
+    importlib.reload(parsers_mod)
 
 
 @pytest.fixture
