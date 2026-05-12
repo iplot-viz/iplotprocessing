@@ -61,7 +61,6 @@ class TestBitwise:
         a = BufferObject(input_arr=[1, 2, 3])
         np.testing.assert_array_equal(augmented.lshift(a, 1), [2, 4, 6])
 
-    @pytest.mark.xfail(strict=True, reason="augmented.rshift typo __rshift____ at augmented.py:56")
     def test_rshift(self):
         a = BufferObject(input_arr=[4, 8, 16])
         np.testing.assert_array_equal(augmented.rshift(a, 1), [2, 4, 8])
