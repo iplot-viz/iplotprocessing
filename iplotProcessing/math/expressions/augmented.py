@@ -53,7 +53,7 @@ def lshift(obj, other):
 
 
 def rshift(obj, other):
-    obj = obj.__rshift____(other)
+    obj = obj.__rshift__(other)
     return obj
 
 
