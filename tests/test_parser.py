@@ -213,9 +213,8 @@ class TestInjectMembers:
 
 class TestEvalExpression:
 
-    def test_eval_with_simple_expression_returns_proxy_data_slot(self, isolated_parser_config, buffer_factory):
+    def test_eval_with_simple_expression_binds_signal_directly(self, isolated_parser_config, buffer_factory):
         from iplotProcessing.core.signal import Signal
-        from iplotProcessing.tools.parsers import SignalProxy
         p = isolated_parser_config
         p.set_expression("${x}", is_expression=True)
 
@@ -224,13 +223,33 @@ class TestEvalExpression:
         sig.data_store[1] = buffer_factory([10.0, 20.0])
         p.substitute_var({"x": sig})
 
-        # substitute_var wraps the raw value into a SignalProxy whose data slot is the original value.
-        proxy = p.locals[p.var_map["x"]]
-        assert isinstance(proxy, SignalProxy)
-        assert proxy.data_store[1] is sig
+        # Without dict_result the signal is bound directly so the auto-appended .data
+        # accessor resolves through the signal's own alias_map.
+        assert p.locals[p.var_map["x"]] is sig
 
         p.eval_expr()
-        assert p.result is sig
+        assert p.result is sig.data_store[1]
+
+    def test_eval_dotted_data_returns_buffer_when_no_realignment(self, isolated_parser_config, buffer_factory):
+        # Regression for #110: ${alias}.data must yield the underlying BufferObject, not
+        # the signal object itself. Otherwise downstream consumers that check
+        # isinstance(val, np.ndarray) reject the result and arrays stay empty.
+        from iplotProcessing.core.bobject import BufferObject
+        from iplotProcessing.core.signal import Signal
+
+        p = isolated_parser_config
+        p.set_expression("${psi}.data", is_expression=True)
+
+        psi = Signal()
+        psi.data_store[0] = buffer_factory([0.0, 1.0])
+        psi.data_store[1] = buffer_factory([[1.0, 2.0], [3.0, 4.0]])
+
+        p.substitute_var({"psi": psi})
+        p.eval_expr()
+
+        assert isinstance(p.result, BufferObject)
+        assert p.result.shape == (2, 2)
+        assert p.result is psi.data_store[1]
 
     def test_eval_with_type_error_raises_invalid_variable(self, isolated_parser_config):
         from iplotProcessing.common.errors import InvalidVariable
