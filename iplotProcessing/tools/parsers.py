@@ -412,9 +412,12 @@ class Parser:
         for k in val_map.keys():
             if self.var_map.get(k):
                 if not dict_result:
-                    self.locals[self.var_map[k]] = SignalProxy({"time": val_map[k], "data": val_map[k]})
+                    # Bind the signal directly so ${alias}.data resolves to the signal's
+                    # actual BufferObject through its alias_map. Wrapping in SignalProxy here
+                    # would store the signal itself in data_store and break .data/.time access
+                    # for dependencies whose time axes do not require realignment.
+                    self.locals[self.var_map[k]] = val_map[k]
                 else:
-                    # Modified
                     # Check for self in case if self.data_store[2]
                     if k not in dict_result.keys():
                         self.locals[self.var_map[k]] = val_map[k]
