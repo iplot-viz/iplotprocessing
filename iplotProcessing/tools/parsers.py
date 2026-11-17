@@ -13,8 +13,23 @@ from iplotProcessing.core import Signal as ProcessingSignal
 from iplotLogging import setupLogger
 import importlib
 import os
+import sys
+import sysconfig
 
 logger = setupLogger.get_logger(__name__, "INFO")
+
+# Where Python and the installed packages live: their modules are never imported again (see Parser.reload_module).
+_INSTALLED = {os.path.normcase(os.path.abspath(path)) for name, path in sysconfig.get_paths().items()
+              if name in ('stdlib', 'platstdlib', 'purelib', 'platlib')}
+
+
+def _of_the_user(module) -> bool:
+    """Whether a module comes from files of the user, rather than with Python or an installed package."""
+    path = getattr(module, '__file__', None)
+    if not path:
+        return False
+    path = os.path.normcase(os.path.abspath(path))
+    return not any(path.startswith(root + os.sep) for root in _INSTALLED)
 
 ParserT = typing.TypeVar("ParserT", bound="Parser")
 
@@ -93,6 +108,10 @@ class Parser:
 
             self.config = {DEFAULT_MODULES: [], USER_MODULES: []}
             self._access_to_config = True
+            # The modules of the user each module of the configuration brought into sys.modules, by module.
+            self._brought: typing.Dict[str, typing.Set[str]] = {}
+            # The members of expressions without the user modules: what the namespace is built again from.
+            self._base_members = ({}, set())
             self.init_modules()
 
     def has_access_to_config(self):
@@ -140,6 +159,19 @@ class Parser:
                 self.inject(self.get_member_list(obj))
 
     def load_modules(self, new_module):
+        before, name = set(sys.modules), None
+        try:
+            name = self._load_module(new_module)
+        finally:
+            # The modules of files of the user it brought: those it imported first, and it and its submodules, which
+            # may have been imported before. They go out of sys.modules to reload or remove it.
+            brought = self._brought.setdefault(new_module, set())
+            brought.update(module for module in set(sys.modules) - before if _of_the_user(sys.modules[module]))
+            if name is not None:
+                brought.update(module for module, value in list(sys.modules.items())
+                               if (module == name or module.startswith(name + '.')) and _of_the_user(value))
+
+    def _load_module(self, new_module):
         match = self.pattern.match(new_module)
         if not match:
             raise ValueError(f"Invalid import syntax: '{new_module}'")
@@ -173,6 +205,7 @@ class Parser:
             self.load_submodules(loaded_module, module_name)
         else:
             self.inject(self.get_member_list(loaded_module))
+        return module_name
 
     def format_modules(self):
         # The correct format is set before starting to evaluate the modules
@@ -187,13 +220,61 @@ class Parser:
 
     def init_modules(self):
         self.format_modules()
-        all_modules = self.get_modules()
-        for module in all_modules:
+        self._load_or_drop(self.config[DEFAULT_MODULES])
+        self._base_members = (dict(self._supported_members), set(self._supported_member_names))
+        self._load_or_drop(self.config[USER_MODULES])
+
+    def _load_or_drop(self, modules: typing.List[str]):
+        """Load modules of the configuration, and drop from it those that fail to."""
+        for module in list(modules):
             try:
                 self.load_modules(module)
             except Exception as e:
                 logger.error(f"Error loading module {module}: {e}")
                 self.remove_module_from_config(module)
+
+    def reload_module(self, module: str):
+        """Import a user module of the configuration again, as its files are now, and let expressions use it so. If
+        that fails, as for an error in its code, the module stays as it was and the error is raised."""
+        taken = self._forget(module)
+        try:
+            self.load_modules(module)
+        except Exception:
+            sys.modules.update(taken)
+            self._brought[module] = set(taken)
+            raise
+        finally:
+            self._rebuild_namespace()
+
+    def _unload(self, modules: typing.Iterable[str]):
+        """Take user modules no longer in the configuration out of expressions, and out of memory."""
+        for module in modules:
+            self._forget(module)
+        self._rebuild_namespace()
+
+    def _forget(self, module: str) -> dict:
+        """Take out of sys.modules the modules of the user a module of the configuration brought, so that the next
+        import reads their files again; and their compiled code, which Python only reads again when the size or the
+        second of a file changed. Returns the modules taken out."""
+        taken = {name: sys.modules.pop(name) for name in self._brought.pop(module, set()) if name in sys.modules}
+        for name, value in taken.items():
+            try:
+                os.remove(value.__cached__)
+            except (AttributeError, TypeError, OSError):
+                pass
+        importlib.invalidate_caches()
+        return taken
+
+    def _rebuild_namespace(self):
+        """What expressions use, built again: the members of the parser and of the default modules, then those of the
+        user modules of the configuration. In new containers: an evaluation under way keeps the ones it has."""
+        members, names = self._base_members
+        self._supported_members, self._supported_member_names = dict(members), set(names)
+        for module in list(self.config[USER_MODULES]):
+            try:
+                self.load_modules(module)
+            except Exception as e:
+                logger.error(f"Error loading module {module}: {e}")
 
     def remove_module_from_config(self, module):
         default_modules = self.config[DEFAULT_MODULES]
@@ -236,16 +317,20 @@ class Parser:
         return len(self.config[DEFAULT_MODULES])
 
     def reset_modules(self):
+        removed = self.config[USER_MODULES]
         self.config[USER_MODULES] = []
         self.write_config_to_json()
+        self._unload(removed)
 
     def clear_modules(self, index):
         modules = self.get_modules()
         default_modules = self.config[DEFAULT_MODULES]
         deleted_index = [i for i in index if i > len(default_modules) - 1]
         result_modules = [i for j, i in enumerate(modules) if j not in deleted_index and j > len(default_modules) - 1]
+        removed = [module for module in self.config[USER_MODULES] if module not in result_modules]
         self.config[USER_MODULES] = result_modules
         self.write_config_to_json()
+        self._unload(removed)
         return deleted_index
 
     @property
