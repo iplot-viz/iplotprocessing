@@ -12,9 +12,42 @@ from iplotProcessing.core import BufferObject
 from iplotProcessing.core import Signal as ProcessingSignal
 from iplotLogging import setupLogger
 import importlib
+import importlib.util
 import os
+import site
+import sys
+import sysconfig
+import threading
 
 logger = setupLogger.get_logger(__name__, "INFO")
+
+
+def _normalized(path: str) -> str:
+    return os.path.normcase(os.path.abspath(path))
+
+
+# The folders of Python and of the installed packages: a module found there is never imported again (see
+# Parser.reload_module).
+_INSTALLED = {_normalized(path) for path in [path for name, path in sysconfig.get_paths().items()
+                                             if name in ('stdlib', 'platstdlib', 'purelib', 'platlib')]
+              + site.getsitepackages() + [site.getusersitepackages()]}
+
+
+def _folder_of(path: str, folders: typing.List[str]) -> typing.Optional[str]:
+    """The folder of the path, out of `folders`, a file was found in: the deepest that holds it."""
+    path = _normalized(path)
+    return max((folder for folder in folders if path.startswith(os.path.join(folder, ''))), key=len, default=None)
+
+
+def _location(name: str) -> typing.Optional[str]:
+    """Where the top-level package of a module is found: its file, or its folder for a package without one."""
+    try:
+        spec = importlib.util.find_spec(name.partition('.')[0])
+    except (ImportError, ValueError):
+        return None
+    if spec is None:
+        return None
+    return spec.origin if spec.has_location else next(iter(spec.submodule_search_locations or ()), None)
 
 ParserT = typing.TypeVar("ParserT", bound="Parser")
 
@@ -82,17 +115,25 @@ class Parser:
             self.has_time_units = False
             self._supported_member_names = set()
             self._supported_members = dict()
+            # The members injected, as those of the signals before they are evaluated: they stay when the members of
+            # the user modules change (see _rebuild_namespace).
+            self._injected = {}
+            self._injecting = threading.Lock()
 
-            self.inject(Parser.get_member_list(ProcessingSignal))
-            self.inject(Parser.get_member_list(BufferObject))
-            self.inject(Parser.add_alias_map_envelope())
-            self.inject(Parser.add_alias_map_contour())
+            self._add(Parser.get_member_list(ProcessingSignal))
+            self._add(Parser.get_member_list(BufferObject))
+            self._add(Parser.add_alias_map_envelope())
+            self._add(Parser.add_alias_map_contour())
             self.locals = {}
             self.var_map = {}
             self._var_counter = 0
 
             self.config = {DEFAULT_MODULES: [], USER_MODULES: []}
             self._access_to_config = True
+            # The modules of the user each module of the configuration brought into sys.modules, by module.
+            self._brought: typing.Dict[str, typing.Set[str]] = {}
+            # The members of the parser and of the default modules: what the namespace is built again from.
+            self._base_members = {}
             self.init_modules()
 
     def has_access_to_config(self):
@@ -129,50 +170,74 @@ class Parser:
             self._access_to_config = False
 
     def load_submodules(self, module, parent_name=""):
-        self.inject(self.get_member_list(module))
+        self._add(self._members_of(module, parent_name))
+
+    def _members_of(self, module, parent_name="", members: dict = None) -> dict:
+        """The members of a module, and those of its submodules and of their classes."""
+        members = {} if members is None else members
+        members.update(self.get_member_list(module))
 
         for name, obj in inspect.getmembers(module):
             full_name = f"{parent_name}.{name}" if parent_name else name
 
             if inspect.ismodule(obj) and parent_name in obj.__name__:
-                self.load_submodules(obj, full_name)
+                self._members_of(obj, full_name, members)
             elif inspect.isclass(obj):
-                self.inject(self.get_member_list(obj))
+                members.update(self.get_member_list(obj))
+        return members
 
     def load_modules(self, new_module):
-        match = self.pattern.match(new_module)
+        self._add(self._import(new_module))
+
+    def _import(self, entry: str) -> dict:
+        """The members a module of the configuration gives expressions, imported if it isn't yet (see _credit)."""
+        module_name, alias, recursive = self._parse(entry)
+        before = set(sys.modules)
+        try:
+            loaded_module = importlib.import_module(module_name)
+            members = {module_name: loaded_module}
+            if alias:
+                members[alias] = loaded_module
+            members.update(self._members_of(loaded_module, module_name) if recursive
+                           else self.get_member_list(loaded_module))
+            return members
+        finally:
+            self._credit(entry, module_name, before)
+
+    def _parse(self, entry: str) -> typing.Tuple[str, typing.Optional[str], bool]:
+        """The module an entry of the configuration imports, its alias, and whether expressions also take the members
+        of its submodules."""
+        match = self.pattern.match(entry)
         if not match:
-            raise ValueError(f"Invalid import syntax: '{new_module}'")
-
-        data = match.groupdict()
-        module_path = data['module_path']
-        module = data['module']
-        alias = data['alias']
-        recursive = False
-
-        # Build module name
-        if not module_path:
-            module_name = module
-        else:
-            module_name = '.'.join([module_path, module])
+            raise ValueError(f"Invalid import syntax: '{entry}'")
+        module_path, module, alias = match.group('module_path', 'module', 'alias')
+        module_name = '.'.join([module_path, module]) if module_path else module
 
         # Handle wildcard import
         module_parts = module_name.split('.')
         if module_parts[-1] == '*':
-            recursive = True
-            module_name = '.'.join(module_parts[:-1])
+            return '.'.join(module_parts[:-1]), alias, True
+        return module_name, alias, not module_path and bool(module)
 
-        loaded_module = importlib.import_module(module_name)
-        self.inject({module_name: loaded_module})
+    def _credit(self, entry: str, module_name: str, before: typing.Set[str]):
+        """Credit a module of the configuration with the modules of files of the user it brought into sys.modules, which
+        are taken out of it to import the module again or remove it: it and its submodules, and those it imported first
+        that are found in its folder of the path. Those of Python, of the installed packages and of other folders of the
+        path, as the packages on PYTHONPATH, are not."""
+        folders = [_normalized(folder) for folder in sys.path]
+        location = _location(module_name)
+        folder = location and _folder_of(location, folders)
+        if not folder or folder in _INSTALLED:
+            return
 
-        # Inject alias if it is set
-        if alias:
-            self.inject({alias: loaded_module})
+        def found_there(module) -> bool:
+            path = getattr(module, '__file__', None)
+            return bool(path) and _folder_of(path, folders) == folder
 
-        if recursive or (not module_path and module):
-            self.load_submodules(loaded_module, module_name)
-        else:
-            self.inject(self.get_member_list(loaded_module))
+        modules = dict(sys.modules)
+        own = {name for name in modules if name == module_name or name.startswith(module_name + '.')}
+        self._brought.setdefault(entry, set()).update(
+            name for name in own | (modules.keys() - before) if found_there(modules[name]))
 
     def format_modules(self):
         # The correct format is set before starting to evaluate the modules
@@ -187,13 +252,86 @@ class Parser:
 
     def init_modules(self):
         self.format_modules()
-        all_modules = self.get_modules()
-        for module in all_modules:
+        self._load_or_drop(self.config[DEFAULT_MODULES])
+        self._base_members = dict(self._supported_members)
+        self._load_or_drop(self.config[USER_MODULES])
+
+    def _load_or_drop(self, modules: typing.List[str]):
+        """Load modules of the configuration, and drop from it those that fail to."""
+        for module in list(modules):
             try:
                 self.load_modules(module)
             except Exception as e:
                 logger.error(f"Error loading module {module}: {e}")
                 self.remove_module_from_config(module)
+
+    def reload_module(self, module: str):
+        """Import the user modules of the configuration again, as their files are now, and let expressions use them so:
+        all of them, as they may share files, as a helper two of them import. `module` goes first: if it fails, as for
+        an error in its code, they all stay as they were and the error is raised. Another one that fails stays as it
+        was."""
+        brought, self._brought = self._brought, {}
+        taken = self._forget(set().union(*brought.values()))
+        try:
+            self._import(module)
+        except Exception:
+            for name in self._brought.pop(module, set()):
+                sys.modules.pop(name, None)
+            sys.modules.update(taken)
+            self._brought = brought
+            raise
+        self._rebuild_namespace(brought, taken)
+
+    def _unload(self, modules: typing.Iterable[str]):
+        """Take user modules no longer in the configuration out of expressions, and out of memory."""
+        for module in modules:
+            self._forget(self._brought.pop(module, set()))
+        self._rebuild_namespace()
+
+    @staticmethod
+    def _forget(names: typing.Iterable[str]) -> dict:
+        """Take modules out of sys.modules, so that the next import reads their files again; and their compiled code,
+        which Python only reads again when the size or the second of a file changed. Returns the modules taken out."""
+        taken = {name: sys.modules.pop(name) for name in names if name in sys.modules}
+        for value in taken.values():
+            try:
+                os.remove(value.__cached__)
+            except (AttributeError, TypeError, OSError):
+                pass
+        importlib.invalidate_caches()
+        return taken
+
+    def _rebuild_namespace(self, brought: dict = None, taken: dict = None):
+        """Build what expressions use again, apart, and then put it in place, so that an expression evaluated meanwhile
+        finds all it found: the members of the parser and of the default modules, those of the user modules of the
+        configuration, then those injected. A user module that can't be imported again gets back its modules of
+        before, those `taken` out that `brought` credited it with, and stays as it was."""
+        members = dict(self._base_members)
+        for module in list(self.config[USER_MODULES]):
+            try:
+                members.update(self._import(module))
+            except Exception as e:
+                kept = self._as_it_was(module, brought or {}, taken or {})
+                if kept is None:
+                    logger.error(f"Error loading module {module}: {e}")
+                    continue
+                logger.warning(f"Module {module} stays as it was, as importing it again failed: {e}")
+                members.update(kept)
+        with self._injecting:
+            members.update(self._injected)
+            self._supported_members, self._supported_member_names = members, set(members)
+
+    def _as_it_was(self, module: str, brought: dict, taken: dict) -> typing.Optional[dict]:
+        """The members of a user module from its modules of before, put back in sys.modules; None if it had none."""
+        old = {name: taken[name] for name in brought.get(module, set()) if name in taken and name not in sys.modules}
+        if not old:
+            return None
+        sys.modules.update(old)
+        self._brought.setdefault(module, set()).update(old)
+        try:
+            return self._import(module)
+        except Exception:
+            return None
 
     def remove_module_from_config(self, module):
         default_modules = self.config[DEFAULT_MODULES]
@@ -236,16 +374,20 @@ class Parser:
         return len(self.config[DEFAULT_MODULES])
 
     def reset_modules(self):
+        removed = self.config[USER_MODULES]
         self.config[USER_MODULES] = []
         self.write_config_to_json()
+        self._unload(removed)
 
     def clear_modules(self, index):
         modules = self.get_modules()
         default_modules = self.config[DEFAULT_MODULES]
         deleted_index = [i for i in index if i > len(default_modules) - 1]
         result_modules = [i for j, i in enumerate(modules) if j not in deleted_index and j > len(default_modules) - 1]
+        removed = [module for module in self.config[USER_MODULES] if module not in result_modules]
         self.config[USER_MODULES] = result_modules
         self.write_config_to_json()
+        self._unload(removed)
         return deleted_index
 
     @property
@@ -253,10 +395,14 @@ class Parser:
         return self._supported_members
 
     def inject(self, members: dict) -> ParserT:
-        self._supported_members.update(members)
-        for k in members.keys():
-            self._supported_member_names.add(k)
+        with self._injecting:
+            self._injected.update(members)
+            self._add(members)
         return self
+
+    def _add(self, members: dict):
+        self._supported_members.update(members)
+        self._supported_member_names.update(members)
 
     def replace_var(self, expr: str, envelope: bool = False, idx: int = None) -> str:
         new_expr = expr
